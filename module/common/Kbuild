@@ -1,0 +1,1 @@
+droidmole-y += common/dm_kernel_funcs.o

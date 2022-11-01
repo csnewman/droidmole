@@ -1,0 +1,8 @@
+KERNEL_DIR=common
+
+. ${ROOT_DIR}/${KERNEL_DIR}/build.config.common
+. ${ROOT_DIR}/${KERNEL_DIR}/build.config.gki
+
+BUILD_INITRAMFS=0
+EXT_MODULES="droidmole"
+LZ4_RAMDISK=0

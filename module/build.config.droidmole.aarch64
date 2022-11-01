@@ -1,0 +1,6 @@
+. ${ROOT_DIR}/droidmole/build.config.droidmole
+. ${ROOT_DIR}/${KERNEL_DIR}/build.config.aarch64
+
+FILES=""
+MAKE_GOALS="modules"
+CONFIG_DROIDMOLE_ARCH=arm64
