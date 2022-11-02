@@ -9,6 +9,8 @@ DM_SYSCALL_IMPLEMENTATION3(mkdirat, int, dfd, const char __user *, pathname, umo
     struct filename* name = dmk_getname(pathname);
     dm_info("name %s \n", name->name);
 
-//return do_mkdirat(dfd, pathname, mode);
-    return 0;
+    long res = dm_original_mkdirat(dfd, pathname, mode);
+    dm_info("res %d \n", res);
+
+    return res;
 }

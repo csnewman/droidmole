@@ -2,10 +2,22 @@
 #include <linux/kprobes.h>
 #include <common/dm_log.h>
 #include <common/dm_kernel_funcs.h>
-#include <asm/syscall.h>
+#include <common/dm_utils.h>
 
 static syscall_fn_t* original_sys_call_table_ptr;
 static syscall_fn_t custom_sys_call_table[__NR_syscalls];
+
+#define __STORE_ARG(t, a) regs.regs[arg++] = (__force u64) a
+
+#define __DM_INTERCEPTED_SYSCALLx(x, id, name, ...)                   \
+    __nocfi long dm_original_##name(__MAP(x,__SC_DECL,__VA_ARGS__)) { \
+        struct pt_regs regs;                                          \
+        int arg = 0;                                                  \
+        __MAP_BLOCK(x,__STORE_ARG, __VA_ARGS__)                       \
+        return original_sys_call_table_ptr[id](&regs);                \
+    }
+
+#include <interception/dm_syscall_table.h>
 
 static int svc_handler_pre(struct kprobe *p, struct pt_regs *regs) {
     if (regs->regs[1] == __NR_mkdirat) {
@@ -15,11 +27,10 @@ static int svc_handler_pre(struct kprobe *p, struct pt_regs *regs) {
                 regs->regs[0], regs->regs[1], regs->regs[2], regs->regs[3],
                 original_sys_call_table_ptr
         );
+    }
 
-        if (regs->regs[2] == original_sys_call_table_ptr) {
-            regs->regs[2] = (u64) (void*) custom_sys_call_table;
-            dm_info("Sys call table set\n");
-        }
+    if (regs->regs[2] == original_sys_call_table_ptr) {
+        regs->regs[2] = (u64) custom_sys_call_table;
     }
 
     return 0;
@@ -34,14 +45,14 @@ __nocfi int setup_syscall_interception(void) {
     dm_info("Resolving syscall table\n");
     original_sys_call_table_ptr = (syscall_fn_t*) dmk_kallsyms_lookup_name("sys_call_table");
     dm_info("- Syscall Table: 0x%px\n", original_sys_call_table_ptr);
-    dm_info("- Syscall Table SIze: 0x%px\n", sizeof (custom_sys_call_table));
+    dm_info("- Syscall Table Size: 0x%px\n", sizeof (custom_sys_call_table));
 
     dm_info("Copying syscall table\n");
     memcpy((void*) custom_sys_call_table, (void*) original_sys_call_table_ptr, sizeof (custom_sys_call_table));
 
     dm_info("Patching syscall table\n");
 
-#define __INTERCEPTED_SYSCALL(id, name) \
+#define __DM_INTERCEPTED_SYSCALLx(x, id, name, ...) \
     custom_sys_call_table[id] = __arm64_intercepted_##name;
 
 #include <interception/dm_syscall_table.h>
