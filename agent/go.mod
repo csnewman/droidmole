@@ -2,19 +2,22 @@ module droidmole
 
 go 1.19
 
-require github.com/pion/webrtc/v3 v3.1.50
+require (
+	github.com/pion/interceptor v0.1.11
+	github.com/pion/rtcp v1.2.10
+	github.com/pion/rtp v1.7.13
+	github.com/pion/webrtc/v3 v3.1.50
+	github.com/xlab/libvpx-go v0.0.0-20220203233824-652b2616315c
+)
 
 require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/pion/datachannel v1.5.5 // indirect
 	github.com/pion/dtls/v2 v2.1.5 // indirect
 	github.com/pion/ice/v2 v2.2.12 // indirect
-	github.com/pion/interceptor v0.1.11 // indirect
 	github.com/pion/logging v0.2.2 // indirect
 	github.com/pion/mdns v0.0.5 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
-	github.com/pion/rtcp v1.2.10 // indirect
-	github.com/pion/rtp v1.7.13 // indirect
 	github.com/pion/sctp v1.8.5 // indirect
 	github.com/pion/sdp/v3 v3.0.6 // indirect
 	github.com/pion/srtp/v2 v2.0.10 // indirect
