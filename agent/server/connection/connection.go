@@ -19,12 +19,15 @@ import (
 	"time"
 )
 
+type SampleCallback func(sample *media.Sample)
+
 type CfConnection struct {
-	connector *PollingConnector
-	rtc       *webrtc.PeerConnection
+	connector      *PollingConnector
+	rtc            *webrtc.PeerConnection
+	sampleCallback SampleCallback
 }
 
-func New(serverUrl string) (*CfConnection, error) {
+func New(serverUrl string, callback SampleCallback) (*CfConnection, error) {
 	con, err := NewConnector(serverUrl)
 	if err != nil {
 		log.Fatal(err)
@@ -86,8 +89,9 @@ func New(serverUrl string) (*CfConnection, error) {
 	}
 
 	cfc := &CfConnection{
-		connector: con,
-		rtc:       rtc,
+		connector:      con,
+		rtc:            rtc,
+		sampleCallback: callback,
 	}
 
 	cfc.connector.ConfigureCallback(cfc.processMessage)
@@ -340,11 +344,14 @@ func (c *CfConnection) processVideo(remote *webrtc.TrackRemote) {
 
 		vs.Push(rtp)
 
-		sample := vs.Pop()
-		if sample == nil {
-			continue
-		}
+		for {
+			sample := vs.Pop()
+			if sample == nil {
+				break
+			}
 
-		vp.Push(sample)
+			vp.Push(sample)
+			c.sampleCallback(sample)
+		}
 	}
 }

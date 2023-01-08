@@ -3,6 +3,7 @@ module droidmole
 go 1.19
 
 require (
+	github.com/gorilla/websocket v1.5.0
 	github.com/pion/interceptor v0.1.11
 	github.com/pion/rtcp v1.2.10
 	github.com/pion/rtp v1.7.13
