@@ -210,7 +210,13 @@ func (c *PollingConnector) PollMessages() ([]*InboundPayload, error) {
 
 		defer resp.Body.Close()
 
-		panic("Old format response not implemented")
+		var payloads []*InboundPayload
+		err = json.NewDecoder(resp.Body).Decode(&payloads)
+		if err != nil {
+			return nil, err
+		}
+
+		return payloads, nil
 	}
 }
 
@@ -271,6 +277,16 @@ func (c *PollingConnector) Forward(payload OutboundPayload) error {
 
 		return nil
 	} else {
-		panic("Old format response not implemented")
+		var payloads []*InboundPayload
+		err = json.NewDecoder(resp.Body).Decode(&payloads)
+		if err != nil {
+			return err
+		}
+
+		for _, payload := range payloads {
+			(*c.callback)(payload)
+		}
+
+		return nil
 	}
 }
