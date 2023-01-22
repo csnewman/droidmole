@@ -10,4 +10,5 @@ var downloadCmd = &cobra.Command{
 func init() {
 	downloadCmd.AddCommand(sysimgCmd)
 	downloadCmd.AddCommand(emulatorCmd)
+	downloadCmd.AddCommand(platformCmd)
 }

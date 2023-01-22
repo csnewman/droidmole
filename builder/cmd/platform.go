@@ -6,28 +6,24 @@ import (
 	"log"
 )
 
-const toolRepo = "https://dl.google.com/android/repository/repository2-1.xml"
-
-var emulatorCmd = &cobra.Command{
-	Use:   "emulator",
-	Short: "Download the Android emulator",
-	Run:   executeEmulator,
+var platformCmd = &cobra.Command{
+	Use:   "platform-tools",
+	Short: "Download platform tools",
+	Run:   executePlatform,
 }
 
-var emuChannel string
-var emuOutput string
-var emuHostOs string
-var emuHostBits int
+var pltChannel string
+var pltOutput string
+var pltHostOs string
 
 func init() {
-	emulatorCmd.Flags().StringVar(&emuHostOs, "host-os", "linux", "OS (linux, windows, macosx)")
-	emulatorCmd.Flags().IntVar(&emuHostBits, "host-bits", 64, "OS Bits (32, 64)")
-	emulatorCmd.Flags().StringVar(&emuChannel, "channel", "channel-0", "Release Channel (e.g. channel-0)")
-	emulatorCmd.Flags().StringVar(&emuOutput, "output", "", "Destination File")
-	emulatorCmd.MarkFlagRequired("output")
+	platformCmd.Flags().StringVar(&emuHostOs, "host-os", "linux", "OS (linux, windows, macosx)")
+	platformCmd.Flags().StringVar(&emuChannel, "channel", "channel-0", "Release Channel (e.g. channel-0)")
+	platformCmd.Flags().StringVar(&emuOutput, "output", "", "Destination File")
+	platformCmd.MarkFlagRequired("output")
 }
 
-func executeEmulator(cmd *cobra.Command, args []string) {
+func executePlatform(cmd *cobra.Command, args []string) {
 	log.Println("DroidMole Builder")
 
 	manifest, err := repository.GetManifest(toolRepo)
@@ -40,7 +36,7 @@ func executeEmulator(cmd *cobra.Command, args []string) {
 			continue
 		}
 
-		if rpkg.Path != "emulator" {
+		if rpkg.Path != "platform-tools" {
 			continue
 		}
 
@@ -49,16 +45,11 @@ func executeEmulator(cmd *cobra.Command, args []string) {
 				continue
 			}
 
-			if archive.HostBits != emuHostBits {
-				continue
-			}
-
 			log.Println("Selected", rpkg.Path)
 			log.Println("  Display:", rpkg.DisplayName)
 			log.Println(" Revision:", rpkg.Revision.Major)
 			log.Println("  Channel:", rpkg.ChannelRef.Ref)
 			log.Println("   HostOS:", archive.HostOs)
-			log.Println(" HostBits:", archive.HostBits)
 
 			url := "https://dl.google.com/android/repository/" + archive.Complete.Url
 
