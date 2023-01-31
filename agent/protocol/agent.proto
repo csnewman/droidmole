@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+option go_package = "./protocol";
+
+import "google/protobuf/empty.proto";
+
+service AgentController {
+  rpc streamDisplay(google.protobuf.Empty) returns (stream DisplayFrame) {}
+
+  rpc sendInput(TouchEvent) returns (google.protobuf.Empty) {}
+}
+
+message DisplayFrame {
+  bool keyframe = 1;
+  bytes data = 2;
+}
+
+message TouchEvent {
+  repeated Touch touches = 1;
+}
+
+message Touch {
+  int32 identifier = 1;
+
+  int32 x = 2;
+  int32 y = 3;
+
+  int32 pressure = 4;
+  int32 touch_major = 5;
+  int32 touch_minor = 6;
+}
