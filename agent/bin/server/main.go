@@ -1,7 +1,7 @@
 package main
 
 import (
-	"droidmole/server"
+	"github.com/csnewman/droidmole/agent/server"
 )
 
 func main() {
