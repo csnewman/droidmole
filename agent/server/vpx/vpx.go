@@ -148,6 +148,10 @@ func (c *CodecCtx) GetFrameBuffer(iter *CodecIter) []byte {
 	return C.GoBytes(buffer.ptr, buffer.size)
 }
 
+func (c *CodecCtx) Free() {
+	C.free(unsafe.Pointer(c))
+}
+
 func NewCodecEncCfg() *CodecEncCfg {
 	return (*CodecEncCfg)(allocMemory(codecEncCfgSize))
 }
@@ -179,6 +183,10 @@ func (c *CodecEncCfg) SetGErrorResilient(res uint) {
 func (c *CodecEncCfg) SetGTimebase(num int, den int) {
 	c.g_timebase.num = C.int(num)
 	c.g_timebase.den = C.int(den)
+}
+
+func (c *CodecEncCfg) Free() {
+	C.free(unsafe.Pointer(c))
 }
 
 func VP8Iface() *CodecIface {
@@ -244,6 +252,12 @@ func (i *Image) Read(data []byte) {
 	C.vpx_img_read(
 		(*C.vpx_image_t)(i),
 		unsafe.Pointer(&data[0]),
+	)
+}
+
+func (i *Image) Free() {
+	C.vpx_img_free(
+		(*C.vpx_image_t)(i),
 	)
 }
 
