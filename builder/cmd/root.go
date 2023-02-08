@@ -15,6 +15,7 @@ var rootCmd = &cobra.Command{
 func init() {
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 	rootCmd.AddCommand(download.Cmd)
+	rootCmd.AddCommand(patchRamdiskCmd)
 }
 
 func Execute() {
