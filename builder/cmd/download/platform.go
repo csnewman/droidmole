@@ -1,7 +1,7 @@
-package cmd
+package download
 
 import (
-	"droidmole/builder/repository"
+	"github.com/csnewman/droidmole/builder/repository"
 	"github.com/spf13/cobra"
 	"log"
 )

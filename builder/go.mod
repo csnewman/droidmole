@@ -1,4 +1,4 @@
-module droidmole/builder
+module github.com/csnewman/droidmole/builder
 
 go 1.19
 

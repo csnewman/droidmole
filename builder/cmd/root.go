@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/csnewman/droidmole/builder/cmd/download"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -13,7 +14,7 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
-	rootCmd.AddCommand(downloadCmd)
+	rootCmd.AddCommand(download.Cmd)
 }
 
 func Execute() {

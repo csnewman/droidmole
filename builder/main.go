@@ -1,7 +1,8 @@
 package main
 
 import (
-	"droidmole/builder/cmd"
+	"bufio"
+	"github.com/csnewman/droidmole/builder/cmd"
 )
 
 func main() {
