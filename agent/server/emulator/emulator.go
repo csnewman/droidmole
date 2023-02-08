@@ -111,23 +111,6 @@ func Run() {
 		log.Fatal(err)
 	}
 
-	err = os.MkdirAll(filepath.Join(dirname, ".config/pulse"), 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Println("Configuring pulse")
-
-	cmd = exec.Command("pulseaudio", "-D", "-vvvv", "--log-time=1", "--log-time=1", "--exit-idle-time=-1")
-	cmd.Env = append(cmd.Env, "PULSE_SERVER=unix:/tmp/pulse-socket")
-
-	cmd.Stdout = log.Writer()
-	cmd.Stderr = log.Writer()
-	err = cmd.Run()
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	cmd = exec.Command(
 		"/android/emulator/emulator",
 		"-avd", "Custom",
@@ -142,7 +125,6 @@ func Run() {
 		"-gpu", "swiftshader_indirect",
 		"-qemu", "-append", "panic=1",
 	)
-	cmd.Env = append(cmd.Env, "PULSE_SERVER=unix:/tmp/pulse-socket")
 	cmd.Env = append(cmd.Env, "ANDROID_AVD_HOME=/android/home")
 	cmd.Env = append(cmd.Env, "ANDROID_SDK_ROOT=/android")
 
