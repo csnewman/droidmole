@@ -23,6 +23,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AgentControllerClient interface {
+	StreamState(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (AgentController_StreamStateClient, error)
+	StartEmulator(ctx context.Context, in *StartEmulatorRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	StreamDisplay(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (AgentController_StreamDisplayClient, error)
 	SendInput(ctx context.Context, in *TouchEvent, opts ...grpc.CallOption) (*empty.Empty, error)
 }
@@ -35,8 +37,49 @@ func NewAgentControllerClient(cc grpc.ClientConnInterface) AgentControllerClient
 	return &agentControllerClient{cc}
 }
 
+func (c *agentControllerClient) StreamState(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (AgentController_StreamStateClient, error) {
+	stream, err := c.cc.NewStream(ctx, &AgentController_ServiceDesc.Streams[0], "/AgentController/streamState", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &agentControllerStreamStateClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type AgentController_StreamStateClient interface {
+	Recv() (*AgentState, error)
+	grpc.ClientStream
+}
+
+type agentControllerStreamStateClient struct {
+	grpc.ClientStream
+}
+
+func (x *agentControllerStreamStateClient) Recv() (*AgentState, error) {
+	m := new(AgentState)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *agentControllerClient) StartEmulator(ctx context.Context, in *StartEmulatorRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, "/AgentController/startEmulator", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *agentControllerClient) StreamDisplay(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (AgentController_StreamDisplayClient, error) {
-	stream, err := c.cc.NewStream(ctx, &AgentController_ServiceDesc.Streams[0], "/AgentController/streamDisplay", opts...)
+	stream, err := c.cc.NewStream(ctx, &AgentController_ServiceDesc.Streams[1], "/AgentController/streamDisplay", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -80,6 +123,8 @@ func (c *agentControllerClient) SendInput(ctx context.Context, in *TouchEvent, o
 // All implementations must embed UnimplementedAgentControllerServer
 // for forward compatibility
 type AgentControllerServer interface {
+	StreamState(*empty.Empty, AgentController_StreamStateServer) error
+	StartEmulator(context.Context, *StartEmulatorRequest) (*empty.Empty, error)
 	StreamDisplay(*empty.Empty, AgentController_StreamDisplayServer) error
 	SendInput(context.Context, *TouchEvent) (*empty.Empty, error)
 	mustEmbedUnimplementedAgentControllerServer()
@@ -89,6 +134,12 @@ type AgentControllerServer interface {
 type UnimplementedAgentControllerServer struct {
 }
 
+func (UnimplementedAgentControllerServer) StreamState(*empty.Empty, AgentController_StreamStateServer) error {
+	return status.Errorf(codes.Unimplemented, "method StreamState not implemented")
+}
+func (UnimplementedAgentControllerServer) StartEmulator(context.Context, *StartEmulatorRequest) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StartEmulator not implemented")
+}
 func (UnimplementedAgentControllerServer) StreamDisplay(*empty.Empty, AgentController_StreamDisplayServer) error {
 	return status.Errorf(codes.Unimplemented, "method StreamDisplay not implemented")
 }
@@ -106,6 +157,45 @@ type UnsafeAgentControllerServer interface {
 
 func RegisterAgentControllerServer(s grpc.ServiceRegistrar, srv AgentControllerServer) {
 	s.RegisterService(&AgentController_ServiceDesc, srv)
+}
+
+func _AgentController_StreamState_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(empty.Empty)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(AgentControllerServer).StreamState(m, &agentControllerStreamStateServer{stream})
+}
+
+type AgentController_StreamStateServer interface {
+	Send(*AgentState) error
+	grpc.ServerStream
+}
+
+type agentControllerStreamStateServer struct {
+	grpc.ServerStream
+}
+
+func (x *agentControllerStreamStateServer) Send(m *AgentState) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _AgentController_StartEmulator_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StartEmulatorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentControllerServer).StartEmulator(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/AgentController/startEmulator",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentControllerServer).StartEmulator(ctx, req.(*StartEmulatorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _AgentController_StreamDisplay_Handler(srv interface{}, stream grpc.ServerStream) error {
@@ -155,11 +245,20 @@ var AgentController_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*AgentControllerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "startEmulator",
+			Handler:    _AgentController_StartEmulator_Handler,
+		},
+		{
 			MethodName: "sendInput",
 			Handler:    _AgentController_SendInput_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "streamState",
+			Handler:       _AgentController_StreamState_Handler,
+			ServerStreams: true,
+		},
 		{
 			StreamName:    "streamDisplay",
 			Handler:       _AgentController_StreamDisplay_Handler,

@@ -5,9 +5,41 @@ option go_package = "./protocol";
 import "google/protobuf/empty.proto";
 
 service AgentController {
+  rpc streamState(google.protobuf.Empty) returns (stream AgentState);
+
+  rpc startEmulator(StartEmulatorRequest) returns (google.protobuf.Empty);
+
   rpc streamDisplay(google.protobuf.Empty) returns (stream DisplayFrame) {}
 
   rpc sendInput(TouchEvent) returns (google.protobuf.Empty) {}
+}
+
+message AgentState {
+  enum EmulatorState {
+    ERROR = 0;
+    OFF = 1;
+    STARTING = 2;
+    RUNNING = 3;
+  }
+
+  EmulatorState emulator_state = 1;
+}
+
+message StartEmulatorRequest {
+  int32 ram_size = 1;
+  int32 core_count = 2;
+
+  int32 lcd_density = 3;
+  int32 lcd_width = 4;
+  int32 lcd_height = 5;
+
+
+  //section.Key("hw.ramSize").SetValue("2048")
+//section.Key("hw.cpu.ncore").SetValue("1")
+
+//section.Key("hw.lcd.density").SetValue("320")
+//section.Key("hw.lcd.height").SetValue("1280")
+//section.Key("hw.lcd.width").SetValue("720")
 }
 
 message DisplayFrame {
