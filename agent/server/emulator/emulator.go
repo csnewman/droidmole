@@ -2,6 +2,7 @@ package emulator
 
 import (
 	"github.com/csnewman/droidmole/agent/protocol"
+	"github.com/csnewman/droidmole/agent/server/adb"
 	"github.com/csnewman/droidmole/agent/server/emulator/controller"
 	"log"
 	"os"
@@ -112,6 +113,12 @@ func (e *Emulator) connect() {
 	}
 
 	e.controller = conn
+
+	log.Println("Waiting for ADB connection")
+	err = adb.WaitForEmulator()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	log.Println("Emulator started")
 	e.monitor.OnEmulatorStarted()
