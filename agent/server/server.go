@@ -3,8 +3,8 @@ package server
 import (
 	"github.com/csnewman/droidmole/agent/protocol"
 	"github.com/csnewman/droidmole/agent/server/adb"
-	"github.com/csnewman/droidmole/agent/server/controller"
 	"github.com/csnewman/droidmole/agent/server/emulator"
+	"github.com/csnewman/droidmole/agent/server/emulator/controller"
 	"github.com/csnewman/droidmole/agent/util/broadcaster"
 	"google.golang.org/grpc"
 	"log"
@@ -24,6 +24,7 @@ const (
 
 type Server struct {
 	state            State
+	stateError       error
 	mu               sync.Mutex
 	emu              *emulator.Emulator
 	stateBroadcaster *broadcaster.Broadcaster[*protocol.AgentState]
@@ -48,13 +49,6 @@ func (s *Server) Start() {
 	if err != nil {
 		log.Fatal("failed to start adb server", err)
 	}
-
-	//conn, err := controller.Connect("127.0.0.1:8554", s.processSample)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//
-	//s.conn = conn
 
 	lis, err := net.Listen("tcp", "0.0.0.0:8080")
 	if err != nil {
@@ -114,4 +108,13 @@ func (s *Server) broadcastState() {
 func (s *Server) OnEmulatorExit(err error) {
 	//TODO implement me
 	panic("implement me")
+}
+
+func (s *Server) OnEmulatorStarted() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.state = StateRunning
+
+	s.broadcastState()
 }

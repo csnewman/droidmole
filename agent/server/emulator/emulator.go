@@ -2,33 +2,37 @@ package emulator
 
 import (
 	"github.com/csnewman/droidmole/agent/protocol"
+	"github.com/csnewman/droidmole/agent/server/emulator/controller"
 	"log"
 	"os"
 	"os/exec"
 )
 
 type Monitor interface {
+	OnEmulatorStarted()
+
 	OnEmulatorExit(err error)
 }
 
 type Emulator struct {
-	monitor Monitor
+	monitor    Monitor
+	emuCmd     *exec.Cmd
+	controller *controller.Controller
 }
 
-func Start(request *protocol.StartEmulatorRequest, monitor Monitor) *Emulator {
+func Start(request *protocol.StartEmulatorRequest, monitor Monitor) (*Emulator, error) {
 	emu := &Emulator{
 		monitor: monitor,
 	}
-	go emu.start(request)
-	return emu
+	err := emu.startEmulator(request)
+	if err != nil {
+		return nil, err
+	}
+
+	return emu, nil
 }
 
-func (e *Emulator) start(request *protocol.StartEmulatorRequest) {
-	err := e.startInner(request)
-	e.monitor.OnEmulatorExit(err)
-}
-
-func (e *Emulator) startInner(request *protocol.StartEmulatorRequest) error {
+func (e *Emulator) startEmulator(request *protocol.StartEmulatorRequest) error {
 	log.Println("Starting emulator")
 
 	// Create emulator directories
@@ -78,14 +82,37 @@ func (e *Emulator) startInner(request *protocol.StartEmulatorRequest) error {
 	)
 	cmd.Env = append(cmd.Env, "ANDROID_AVD_HOME=/android/home")
 	cmd.Env = append(cmd.Env, "ANDROID_SDK_ROOT=/android")
-
 	cmd.Stdout = log.Writer()
 	cmd.Stderr = log.Writer()
-	err = cmd.Run()
+
+	err = cmd.Start()
 	if err != nil {
 		return err
 	}
 
-	log.Println("Emulator exited")
+	e.emuCmd = cmd
+
+	go e.watchEmulatorExit()
+
+	go e.connect()
+
 	return nil
+}
+
+func (e *Emulator) watchEmulatorExit() {
+	err := e.emuCmd.Wait()
+	log.Println("Emulator exited", err)
+	e.monitor.OnEmulatorExit(err)
+}
+
+func (e *Emulator) connect() {
+	conn, err := controller.Connect(":8554")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	e.controller = conn
+
+	log.Println("Emulator started")
+	e.monitor.OnEmulatorStarted()
 }

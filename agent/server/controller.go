@@ -3,8 +3,8 @@ package server
 import (
 	"context"
 	"github.com/csnewman/droidmole/agent/protocol"
-	emuproto "github.com/csnewman/droidmole/agent/server/controller/protocol"
 	"github.com/csnewman/droidmole/agent/server/emulator"
+	emuproto "github.com/csnewman/droidmole/agent/server/emulator/controller/protocol"
 	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -42,9 +42,19 @@ func (s *agentControllerServer) StartEmulator(ctx context.Context, request *prot
 	if s.server.state != StateStopped {
 		respError = status.Errorf(codes.FailedPrecondition, "emulator already running")
 	} else {
-		s.server.state = StateStarting
-		s.server.emu = emulator.Start(request, s.server)
-		s.server.broadcastState()
+		emu, err := emulator.Start(request, s.server)
+
+		if err != nil {
+			s.server.state = StateError
+			s.server.emu = nil
+			s.server.stateError = err
+		} else {
+			s.server.state = StateStarting
+			s.server.emu = emu
+			s.server.stateError = nil
+
+			s.server.broadcastState()
+		}
 	}
 
 	s.server.mu.Unlock()
