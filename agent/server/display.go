@@ -5,21 +5,17 @@ import (
 	"github.com/csnewman/droidmole/agent/server/emulator"
 	"github.com/csnewman/droidmole/agent/util/broadcaster"
 	"github.com/csnewman/droidmole/agent/util/vpx"
-	"github.com/golang/protobuf/ptypes/empty"
 	"log"
 	"time"
 )
 
-func (s *agentControllerServer) StreamDisplay(_ *empty.Empty, sds protocol.AgentController_StreamDisplayServer) error {
+func (s *agentControllerServer) StreamDisplay(request *protocol.StreamDisplayRequest, sds protocol.AgentController_StreamDisplayServer) error {
 	frameListener := s.server.frameBroadcaster.Listener()
-
-	ticker := time.NewTicker(1 * time.Second / 5)
-	// TODO: Implement
-	done := make(chan bool)
 
 	dp := &displayProcessor{
 		sds:           sds,
 		frameListener: frameListener,
+		request:       request,
 	}
 
 	err := dp.processFrame()
@@ -28,15 +24,30 @@ func (s *agentControllerServer) StreamDisplay(_ *empty.Empty, sds protocol.Agent
 		return err
 	}
 
-	for {
-		select {
-		case <-done:
-			return nil
-		case <-ticker.C:
+	if request.MaxFps == 0 {
+		for {
 			err := dp.processFrame()
 			if err != nil {
 				log.Println("Error streaming display: ", err)
 				return err
+			}
+
+		}
+	} else {
+		ticker := time.NewTicker(1 * time.Second / time.Duration(request.MaxFps))
+		// TODO: Implement
+		done := make(chan bool)
+
+		for {
+			select {
+			case <-done:
+				return nil
+			case <-ticker.C:
+				err := dp.processFrame()
+				if err != nil {
+					log.Println("Error streaming display: ", err)
+					return err
+				}
 			}
 		}
 	}
@@ -47,9 +58,11 @@ type displayProcessor struct {
 	frameListener *broadcaster.Listener[*emulator.Frame]
 	img           *vpx.Image
 	codecCtx      *vpx.CodecCtx
+	request       *protocol.StreamDisplayRequest
 	width         int
 	height        int
 	frameCount    int
+	lastKeyframe  time.Time
 }
 
 func (p *displayProcessor) processFrame() error {
@@ -58,10 +71,14 @@ func (p *displayProcessor) processFrame() error {
 		return err
 	}
 
+	now := time.Now()
+
+	// Blank screen
 	if frame == nil {
 		p.width = 0
 		p.height = 0
 		p.frameCount = 0
+		p.lastKeyframe = now
 		log.Println("Changing stream resolution ", p.width, "x", p.height)
 
 		if p.img != nil {
@@ -80,12 +97,15 @@ func (p *displayProcessor) processFrame() error {
 		})
 	}
 
+	// Detect display size change
 	if frame.Width != p.width || frame.Height != p.height {
 		p.width = frame.Width
 		p.height = frame.Height
 		p.frameCount = 0
+		p.lastKeyframe = now
 		log.Println("Changing stream resolution ", p.width, "x", p.height)
 
+		// Reconfigure encoder
 		if p.img != nil {
 			p.img.Free()
 		}
@@ -121,23 +141,31 @@ func (p *displayProcessor) processFrame() error {
 		}
 	}
 
-	data := vpx.RgbToYuv(frame.Data, 720, 1280)
+	// Convert frame to YUV
+	data := vpx.RgbToYuv(frame.Data, p.width, p.height)
 	p.img.Read(data)
 
-	keyframe := p.frameCount%20 == 0
+	// Determine whether to encode a keyframe
+	keyframe := p.frameCount == 0
+
+	if p.request.KeyframeInterval != 0 && uint32(now.Sub(p.lastKeyframe).Milliseconds()) >= p.request.KeyframeInterval {
+		keyframe = true
+		p.lastKeyframe = now
+	}
 
 	flags := vpx.EFlagNone
 	if keyframe {
 		flags = vpx.EFlagForceKF
 	}
 
+	// Encode
 	err = p.codecCtx.Encode(p.img, vpx.CodecPts(p.frameCount), uint64(1), flags, vpx.DLRealtime)
 	if err != nil {
 		log.Fatal("scr error", err)
 	}
 
+	// Extract packets
 	var iter vpx.CodecIter
-
 	for {
 		pkt := p.codecCtx.GetFrameBuffer(&iter)
 		if pkt == nil {

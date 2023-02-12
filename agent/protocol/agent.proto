@@ -9,7 +9,7 @@ service AgentController {
 
   rpc startEmulator(StartEmulatorRequest) returns (google.protobuf.Empty);
 
-  rpc streamDisplay(google.protobuf.Empty) returns (stream DisplayFrame) {}
+  rpc streamDisplay(StreamDisplayRequest) returns (stream DisplayFrame) {}
 
   rpc sendInput(TouchEvent) returns (google.protobuf.Empty) {}
 }
@@ -35,6 +35,17 @@ message StartEmulatorRequest {
   int32 lcd_density = 3;
   int32 lcd_width = 4;
   int32 lcd_height = 5;
+}
+
+message StreamDisplayRequest {
+  // The maximum number of frames to encode per second.
+  // Extra frames will be dropped, with the most recent frame encoded every 1/max_fps seconds.
+  // Set to 0 to disable limit.
+  uint32 max_fps = 1;
+
+  // How often in milliseconds to encode a keyframe.
+  // Set to 0 to only send when required.
+  uint32 keyframe_interval = 2;
 }
 
 message DisplayFrame {

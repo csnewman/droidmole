@@ -25,7 +25,7 @@ const _ = grpc.SupportPackageIsVersion7
 type AgentControllerClient interface {
 	StreamState(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (AgentController_StreamStateClient, error)
 	StartEmulator(ctx context.Context, in *StartEmulatorRequest, opts ...grpc.CallOption) (*empty.Empty, error)
-	StreamDisplay(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (AgentController_StreamDisplayClient, error)
+	StreamDisplay(ctx context.Context, in *StreamDisplayRequest, opts ...grpc.CallOption) (AgentController_StreamDisplayClient, error)
 	SendInput(ctx context.Context, in *TouchEvent, opts ...grpc.CallOption) (*empty.Empty, error)
 }
 
@@ -78,7 +78,7 @@ func (c *agentControllerClient) StartEmulator(ctx context.Context, in *StartEmul
 	return out, nil
 }
 
-func (c *agentControllerClient) StreamDisplay(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (AgentController_StreamDisplayClient, error) {
+func (c *agentControllerClient) StreamDisplay(ctx context.Context, in *StreamDisplayRequest, opts ...grpc.CallOption) (AgentController_StreamDisplayClient, error) {
 	stream, err := c.cc.NewStream(ctx, &AgentController_ServiceDesc.Streams[1], "/AgentController/streamDisplay", opts...)
 	if err != nil {
 		return nil, err
@@ -125,7 +125,7 @@ func (c *agentControllerClient) SendInput(ctx context.Context, in *TouchEvent, o
 type AgentControllerServer interface {
 	StreamState(*empty.Empty, AgentController_StreamStateServer) error
 	StartEmulator(context.Context, *StartEmulatorRequest) (*empty.Empty, error)
-	StreamDisplay(*empty.Empty, AgentController_StreamDisplayServer) error
+	StreamDisplay(*StreamDisplayRequest, AgentController_StreamDisplayServer) error
 	SendInput(context.Context, *TouchEvent) (*empty.Empty, error)
 	mustEmbedUnimplementedAgentControllerServer()
 }
@@ -140,7 +140,7 @@ func (UnimplementedAgentControllerServer) StreamState(*empty.Empty, AgentControl
 func (UnimplementedAgentControllerServer) StartEmulator(context.Context, *StartEmulatorRequest) (*empty.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method StartEmulator not implemented")
 }
-func (UnimplementedAgentControllerServer) StreamDisplay(*empty.Empty, AgentController_StreamDisplayServer) error {
+func (UnimplementedAgentControllerServer) StreamDisplay(*StreamDisplayRequest, AgentController_StreamDisplayServer) error {
 	return status.Errorf(codes.Unimplemented, "method StreamDisplay not implemented")
 }
 func (UnimplementedAgentControllerServer) SendInput(context.Context, *TouchEvent) (*empty.Empty, error) {
@@ -199,7 +199,7 @@ func _AgentController_StartEmulator_Handler(srv interface{}, ctx context.Context
 }
 
 func _AgentController_StreamDisplay_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(empty.Empty)
+	m := new(StreamDisplayRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
