@@ -26,6 +26,7 @@ type AgentControllerClient interface {
 	StreamState(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (AgentController_StreamStateClient, error)
 	StartEmulator(ctx context.Context, in *StartEmulatorRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	StreamDisplay(ctx context.Context, in *StreamDisplayRequest, opts ...grpc.CallOption) (AgentController_StreamDisplayClient, error)
+	StreamSysShell(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (AgentController_StreamSysShellClient, error)
 	SendInput(ctx context.Context, in *TouchEvent, opts ...grpc.CallOption) (*empty.Empty, error)
 }
 
@@ -110,6 +111,38 @@ func (x *agentControllerStreamDisplayClient) Recv() (*DisplayFrame, error) {
 	return m, nil
 }
 
+func (c *agentControllerClient) StreamSysShell(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (AgentController_StreamSysShellClient, error) {
+	stream, err := c.cc.NewStream(ctx, &AgentController_ServiceDesc.Streams[2], "/AgentController/streamSysShell", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &agentControllerStreamSysShellClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type AgentController_StreamSysShellClient interface {
+	Recv() (*SysShellEntry, error)
+	grpc.ClientStream
+}
+
+type agentControllerStreamSysShellClient struct {
+	grpc.ClientStream
+}
+
+func (x *agentControllerStreamSysShellClient) Recv() (*SysShellEntry, error) {
+	m := new(SysShellEntry)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *agentControllerClient) SendInput(ctx context.Context, in *TouchEvent, opts ...grpc.CallOption) (*empty.Empty, error) {
 	out := new(empty.Empty)
 	err := c.cc.Invoke(ctx, "/AgentController/sendInput", in, out, opts...)
@@ -126,6 +159,7 @@ type AgentControllerServer interface {
 	StreamState(*empty.Empty, AgentController_StreamStateServer) error
 	StartEmulator(context.Context, *StartEmulatorRequest) (*empty.Empty, error)
 	StreamDisplay(*StreamDisplayRequest, AgentController_StreamDisplayServer) error
+	StreamSysShell(*empty.Empty, AgentController_StreamSysShellServer) error
 	SendInput(context.Context, *TouchEvent) (*empty.Empty, error)
 	mustEmbedUnimplementedAgentControllerServer()
 }
@@ -142,6 +176,9 @@ func (UnimplementedAgentControllerServer) StartEmulator(context.Context, *StartE
 }
 func (UnimplementedAgentControllerServer) StreamDisplay(*StreamDisplayRequest, AgentController_StreamDisplayServer) error {
 	return status.Errorf(codes.Unimplemented, "method StreamDisplay not implemented")
+}
+func (UnimplementedAgentControllerServer) StreamSysShell(*empty.Empty, AgentController_StreamSysShellServer) error {
+	return status.Errorf(codes.Unimplemented, "method StreamSysShell not implemented")
 }
 func (UnimplementedAgentControllerServer) SendInput(context.Context, *TouchEvent) (*empty.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendInput not implemented")
@@ -219,6 +256,27 @@ func (x *agentControllerStreamDisplayServer) Send(m *DisplayFrame) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _AgentController_StreamSysShell_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(empty.Empty)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(AgentControllerServer).StreamSysShell(m, &agentControllerStreamSysShellServer{stream})
+}
+
+type AgentController_StreamSysShellServer interface {
+	Send(*SysShellEntry) error
+	grpc.ServerStream
+}
+
+type agentControllerStreamSysShellServer struct {
+	grpc.ServerStream
+}
+
+func (x *agentControllerStreamSysShellServer) Send(m *SysShellEntry) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 func _AgentController_SendInput_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(TouchEvent)
 	if err := dec(in); err != nil {
@@ -262,6 +320,11 @@ var AgentController_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "streamDisplay",
 			Handler:       _AgentController_StreamDisplay_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "streamSysShell",
+			Handler:       _AgentController_StreamSysShell_Handler,
 			ServerStreams: true,
 		},
 	},

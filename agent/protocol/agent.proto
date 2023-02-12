@@ -11,6 +11,8 @@ service AgentController {
 
   rpc streamDisplay(StreamDisplayRequest) returns (stream DisplayFrame) {}
 
+  rpc streamSysShell(google.protobuf.Empty) returns (stream SysShellEntry) {}
+
   rpc sendInput(TouchEvent) returns (google.protobuf.Empty) {}
 }
 
@@ -53,6 +55,10 @@ message DisplayFrame {
   int32 width = 2;
   int32 height = 3;
   bytes data = 4;
+}
+
+message SysShellEntry {
+  string line = 1;
 }
 
 message TouchEvent {

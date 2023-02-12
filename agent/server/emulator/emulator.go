@@ -2,10 +2,12 @@ package emulator
 
 import (
 	"errors"
+	"fmt"
 	"github.com/csnewman/droidmole/agent/protocol"
 	"github.com/csnewman/droidmole/agent/server/adb"
 	"github.com/csnewman/droidmole/agent/server/emulator/controller"
 	emuproto "github.com/csnewman/droidmole/agent/server/emulator/controller/protocol"
+	"github.com/csnewman/droidmole/agent/server/sysshell"
 	"log"
 	"os"
 	"os/exec"
@@ -82,8 +84,7 @@ func (e *Emulator) startEmulator() error {
 		"-skip-adb-auth",
 		"-no-snapshot-save",
 		"-wipe-data",
-		"-shell-serial", "telnet:0.0.0.0:4444,server", //,nowait
-		"-logcat", "*:V",
+		"-shell-serial", fmt.Sprintf("unix:%s", sysshell.SockAddr),
 		"-gpu", "swiftshader_indirect",
 		//"-kernel", "/agent/customKern",
 		"-kernel", "/android/system-image/kernel-ranchu",

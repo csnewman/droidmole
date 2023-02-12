@@ -4,6 +4,7 @@ import (
 	"github.com/csnewman/droidmole/agent/protocol"
 	"github.com/csnewman/droidmole/agent/server/adb"
 	"github.com/csnewman/droidmole/agent/server/emulator"
+	"github.com/csnewman/droidmole/agent/server/sysshell"
 	"github.com/csnewman/droidmole/agent/util/broadcaster"
 	"google.golang.org/grpc"
 	"log"
@@ -28,6 +29,7 @@ type Server struct {
 	emu              *emulator.Emulator
 	stateBroadcaster *broadcaster.Broadcaster[*protocol.AgentState]
 	frameBroadcaster *broadcaster.Broadcaster[*emulator.Frame]
+	shell            *sysshell.SysShell
 }
 
 func New() *Server {
@@ -46,6 +48,11 @@ func (s *Server) Start() {
 	err := adb.StartServer()
 	if err != nil {
 		log.Fatal("failed to start adb server", err)
+	}
+
+	s.shell, err = sysshell.Start()
+	if err != nil {
+		log.Fatal("failed to start sysshell", err)
 	}
 
 	lis, err := net.Listen("tcp", "0.0.0.0:8080")
