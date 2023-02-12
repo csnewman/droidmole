@@ -2,7 +2,11 @@ FROM ubuntu:22.04 AS builder
 
 # Install build dependencies
 RUN apt-get update && \
-    apt-get install -y golang libvpx-dev ca-certificates libarchive-tools
+    apt-get install -y curl libvpx-dev ca-certificates libarchive-tools build-essential pkg-config
+
+# Download golang
+RUN curl -s https://dl.google.com/go/go1.20.linux-amd64.tar.gz | tar -v -C /usr/local -xz
+ENV PATH $PATH:/usr/local/go/bin
 
 # Extract prebuilts
 COPY prebuilts/sysimg.zip /tmp/
@@ -28,6 +32,7 @@ RUN go mod download && go mod verify
 COPY bin bin
 COPY protocol protocol
 COPY server server
+COPY util util
 RUN go build -v -o /out/agent ./bin/server/main.go
 
 FROM ubuntu:22.04
