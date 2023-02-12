@@ -72,7 +72,7 @@ func createConfig(request *protocol.StartEmulatorRequest) (*ini.File, error) {
 
 	// Display
 	section.Key("hw.lcd.density").SetValue(strconv.FormatInt(int64(request.GetLcdDensity()), 10))
-	section.Key("hw.lcd.width").SetValue(strconv.FormatInt(int64(request.GetLcdHeight()), 10))
+	section.Key("hw.lcd.width").SetValue(strconv.FormatInt(int64(request.GetLcdWidth()), 10))
 	section.Key("hw.lcd.height").SetValue(strconv.FormatInt(int64(request.GetLcdHeight()), 10))
 
 	//section.Key("hw.sdCard").SetValue("yes")

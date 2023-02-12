@@ -4,7 +4,6 @@ import (
 	"github.com/csnewman/droidmole/agent/protocol"
 	"github.com/csnewman/droidmole/agent/server/adb"
 	"github.com/csnewman/droidmole/agent/server/emulator"
-	"github.com/csnewman/droidmole/agent/server/emulator/controller"
 	"github.com/csnewman/droidmole/agent/util/broadcaster"
 	"google.golang.org/grpc"
 	"log"
@@ -28,15 +27,14 @@ type Server struct {
 	mu               sync.Mutex
 	emu              *emulator.Emulator
 	stateBroadcaster *broadcaster.Broadcaster[*protocol.AgentState]
-
-	conn    *controller.Controller
-	clients []*DisplayClient
+	frameBroadcaster *broadcaster.Broadcaster[*emulator.Frame]
 }
 
 func New() *Server {
 	return &Server{
 		state:            StateStopped,
 		stateBroadcaster: broadcaster.New[*protocol.AgentState](),
+		frameBroadcaster: broadcaster.New[*emulator.Frame](),
 	}
 }
 
@@ -117,4 +115,8 @@ func (s *Server) OnEmulatorStarted() {
 	s.state = StateRunning
 
 	s.broadcastState()
+}
+
+func (s *Server) OnEmulatorFrame(frame emulator.Frame) {
+	s.frameBroadcaster.Broadcast(&frame)
 }
