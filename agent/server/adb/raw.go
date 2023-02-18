@@ -24,7 +24,12 @@ func NewRawConnection() (*RawConnection, error) {
 }
 
 func (c *RawConnection) Close() error {
-	return c.conn.Close()
+	err := c.conn.Close()
+	// Ignore network closed error
+	if err != nil && errors.Is(err, net.ErrClosed) {
+		return nil
+	}
+	return err
 }
 
 func (c *RawConnection) WriteRaw(packet []byte) error {

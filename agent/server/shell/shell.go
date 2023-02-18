@@ -6,7 +6,9 @@ import (
 	"github.com/csnewman/droidmole/agent/server/adb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"io"
 	"log"
+	"sync/atomic"
 )
 
 func Process(server protocol.AgentController_OpenShellServer) error {
@@ -51,15 +53,15 @@ func Process(server protocol.AgentController_OpenShellServer) error {
 		return err
 	}
 
+	exited := &atomic.Bool{}
 	requestChan := make(chan shellRequestChanMsg)
 	responseChan := make(chan shellResponseChanMsg)
-	go receiveShellRequest(server, requestChan)
-	go receiveShellResponse(emuConn, responseChan)
+	go receiveShellRequest(server, requestChan, exited)
+	go receiveShellResponse(emuConn, responseChan, exited)
 
 	var processingError error
 outer:
 	for {
-		log.Println("loop")
 		select {
 		case rmsg := <-requestChan:
 			if rmsg.err != nil {
@@ -72,10 +74,8 @@ outer:
 			switch msg := inner.(type) {
 			// Process stdin data
 			case *protocol.ShellRequest_Stdin:
-				log.Println("std in request")
 				// Send any data
 				if msg.Stdin.Data != nil && len(msg.Stdin.Data) > 0 {
-					log.Println("writing blob")
 					err := emuConn.WriteShellBlob(0, msg.Stdin.Data)
 					if err != nil {
 						processingError = err
@@ -85,7 +85,6 @@ outer:
 
 				// Close std in if requested
 				if msg.Stdin.Close {
-					log.Println("stdin closing")
 					err := emuConn.WriteShellBlob(4, []byte{})
 					if err != nil {
 						processingError = err
@@ -94,14 +93,12 @@ outer:
 				}
 			// Process resize request
 			case *protocol.ShellRequest_Resize:
-				log.Println("resize request")
 				payload := fmt.Sprintf(
 					"%dx%d,%dx%d",
 					msg.Resize.Rows, msg.Resize.Cols,
 					msg.Resize.Width, msg.Resize.Height,
 				)
 
-				log.Println("writing blob")
 				err := emuConn.WriteShellBlob(5, []byte(payload))
 				if err != nil {
 					processingError = err
@@ -112,7 +109,6 @@ outer:
 				break outer
 			}
 		case rmsg := <-responseChan:
-			log.Println("response")
 			if rmsg.err != nil {
 				processingError = rmsg.err
 				break outer
@@ -121,7 +117,6 @@ outer:
 			switch rmsg.id {
 			// Process stdout & stderr
 			case 1, 2:
-				log.Println("stdin/out response")
 				channel := protocol.ShellOutputResponse_OUT
 				if rmsg.id == 2 {
 					channel = protocol.ShellOutputResponse_ERR
@@ -139,16 +134,13 @@ outer:
 				}
 			// Process exit notification
 			case 3:
-				log.Println("exit response")
-				err := server.Send(&protocol.ShellResponse{Message: &protocol.ShellResponse_Exit{
+				exited.Store(true)
+				processingError = server.Send(&protocol.ShellResponse{Message: &protocol.ShellResponse_Exit{
 					Exit: &protocol.ShellExitResponse{
 						Code: uint32(rmsg.data[0]),
 					},
 				}})
-				if err != nil {
-					processingError = err
-					break outer
-				}
+				break outer
 			default:
 				processingError = status.Errorf(codes.Internal, "unknown response")
 				break outer
@@ -157,12 +149,17 @@ outer:
 	}
 
 	if processingError != nil {
-		log.Println(processingError)
+		log.Println("error while processing shell", processingError)
 	}
 
 	// Cleanup
 	close(requestChan)
 	close(responseChan)
+
+	err = emuConn.Close()
+	if err != nil {
+		log.Println("error while closing adb connection", err)
+	}
 
 	return processingError
 }
@@ -172,11 +169,17 @@ type shellRequestChanMsg struct {
 	err     error
 }
 
-func receiveShellRequest(server protocol.AgentController_OpenShellServer, requestChan chan shellRequestChanMsg) {
+func receiveShellRequest(
+	server protocol.AgentController_OpenShellServer,
+	requestChan chan shellRequestChanMsg,
+	exited *atomic.Bool,
+) {
 	defer func() {
 		// recover from panic caused by writing to a closed channel
 		if r := recover(); r != nil {
-			log.Println("shell request recovered", r)
+			if !exited.Load() {
+				log.Println("shell request recovered", r)
+			}
 			return
 		}
 	}()
@@ -189,7 +192,9 @@ func receiveShellRequest(server protocol.AgentController_OpenShellServer, reques
 		}
 
 		if err != nil {
-			log.Println("shell request error", err)
+			if err != io.EOF {
+				log.Println("shell request error", err)
+			}
 			return
 		}
 	}
@@ -201,11 +206,17 @@ type shellResponseChanMsg struct {
 	err  error
 }
 
-func receiveShellResponse(conn *adb.RawConnection, responseChan chan shellResponseChanMsg) {
+func receiveShellResponse(
+	conn *adb.RawConnection,
+	responseChan chan shellResponseChanMsg,
+	exited *atomic.Bool,
+) {
 	defer func() {
 		// recover from panic caused by writing to a closed channel
 		if r := recover(); r != nil {
-			log.Println("shell response recovered", r)
+			if !exited.Load() {
+				log.Println("shell response recovered", r)
+			}
 			return
 		}
 	}()
@@ -219,7 +230,9 @@ func receiveShellResponse(conn *adb.RawConnection, responseChan chan shellRespon
 		}
 
 		if err != nil {
-			log.Println("shell response error", err)
+			if err != io.EOF {
+				log.Println("shell response error", err)
+			}
 			return
 		}
 	}
