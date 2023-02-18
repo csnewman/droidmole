@@ -59,6 +59,16 @@ func (c *RawConnection) WriteMessage(msg []byte) error {
 	return err
 }
 
+func (c *RawConnection) ReadRaw(blob []byte) error {
+	_, err := io.ReadFull(c.conn, blob)
+	if err != nil {
+		c.Close()
+		return err
+	}
+
+	return nil
+}
+
 func (c *RawConnection) ReadStatus() (string, error) {
 	resp := make([]byte, 4)
 	_, err := io.ReadFull(c.conn, resp)
