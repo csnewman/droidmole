@@ -261,14 +261,14 @@ func (i *Image) Free() {
 	)
 }
 
-func RgbToYuv(rgba []byte, w int, h int) []byte {
+func RgbToYuv(rgba []byte, w uint32, h uint32) []byte {
 	size := int(float32(w*h) * 1.5)
 	yuv := make([]byte, size, size)
 	pos := 0
 
 	// Y plane
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
+	for y := uint32(0); y < h; y++ {
+		for x := uint32(0); x < w; x++ {
 			i := y*w + x
 			yuv[pos] = (byte)(((66*(int)(rgba[3*i]) + 129*(int)(rgba[3*i+1]) + 25*(int)(rgba[3*i+2])) >> 8) + 16)
 			pos++
@@ -276,8 +276,8 @@ func RgbToYuv(rgba []byte, w int, h int) []byte {
 	}
 
 	// U plane
-	for y := 0; y < h; y += 2 {
-		for x := 0; x < w; x += 2 {
+	for y := uint32(0); y < h; y += 2 {
+		for x := uint32(0); x < w; x += 2 {
 			i := y*w + x
 			yuv[pos] = (byte)(((-38*(int)(rgba[3*i]) + -74*(int)(rgba[3*i+1]) + 112*(int)(rgba[3*i+2])) >> 8) + 128)
 			pos++
@@ -285,8 +285,8 @@ func RgbToYuv(rgba []byte, w int, h int) []byte {
 	}
 
 	// V plane
-	for y := 0; y < h; y += 2 {
-		for x := 0; x < w; x += 2 {
+	for y := uint32(0); y < h; y += 2 {
+		for x := uint32(0); x < w; x += 2 {
 			i := y*w + x
 			yuv[pos] = (byte)(((112*(int)(rgba[3*i]) + -94*(int)(rgba[3*i+1]) + -18*(int)(rgba[3*i+2])) >> 8) + 128)
 			pos++

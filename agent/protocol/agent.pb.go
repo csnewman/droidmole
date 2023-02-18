@@ -77,6 +77,54 @@ func (AgentState_EmulatorState) EnumDescriptor() ([]byte, []int) {
 	return file_agent_proto_rawDescGZIP(), []int{0, 0}
 }
 
+type StreamDisplayRequest_FrameFormat int32
+
+const (
+	// 3 bytes per pixel.
+	StreamDisplayRequest_RGB888 StreamDisplayRequest_FrameFormat = 0
+	// VP8 codec. Uses intermediate frames.
+	StreamDisplayRequest_VP8 StreamDisplayRequest_FrameFormat = 1
+)
+
+// Enum value maps for StreamDisplayRequest_FrameFormat.
+var (
+	StreamDisplayRequest_FrameFormat_name = map[int32]string{
+		0: "RGB888",
+		1: "VP8",
+	}
+	StreamDisplayRequest_FrameFormat_value = map[string]int32{
+		"RGB888": 0,
+		"VP8":    1,
+	}
+)
+
+func (x StreamDisplayRequest_FrameFormat) Enum() *StreamDisplayRequest_FrameFormat {
+	p := new(StreamDisplayRequest_FrameFormat)
+	*p = x
+	return p
+}
+
+func (x StreamDisplayRequest_FrameFormat) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (StreamDisplayRequest_FrameFormat) Descriptor() protoreflect.EnumDescriptor {
+	return file_agent_proto_enumTypes[1].Descriptor()
+}
+
+func (StreamDisplayRequest_FrameFormat) Type() protoreflect.EnumType {
+	return &file_agent_proto_enumTypes[1]
+}
+
+func (x StreamDisplayRequest_FrameFormat) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use StreamDisplayRequest_FrameFormat.Descriptor instead.
+func (StreamDisplayRequest_FrameFormat) EnumDescriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{2, 0}
+}
+
 type ShellStartRequest_ShellType int32
 
 const (
@@ -109,11 +157,11 @@ func (x ShellStartRequest_ShellType) String() string {
 }
 
 func (ShellStartRequest_ShellType) Descriptor() protoreflect.EnumDescriptor {
-	return file_agent_proto_enumTypes[1].Descriptor()
+	return file_agent_proto_enumTypes[2].Descriptor()
 }
 
 func (ShellStartRequest_ShellType) Type() protoreflect.EnumType {
-	return &file_agent_proto_enumTypes[1]
+	return &file_agent_proto_enumTypes[2]
 }
 
 func (x ShellStartRequest_ShellType) Number() protoreflect.EnumNumber {
@@ -157,11 +205,11 @@ func (x ShellOutputResponse_ShellOutputChannel) String() string {
 }
 
 func (ShellOutputResponse_ShellOutputChannel) Descriptor() protoreflect.EnumDescriptor {
-	return file_agent_proto_enumTypes[2].Descriptor()
+	return file_agent_proto_enumTypes[3].Descriptor()
 }
 
 func (ShellOutputResponse_ShellOutputChannel) Type() protoreflect.EnumType {
-	return &file_agent_proto_enumTypes[2]
+	return &file_agent_proto_enumTypes[3]
 }
 
 func (x ShellOutputResponse_ShellOutputChannel) Number() protoreflect.EnumNumber {
@@ -233,15 +281,15 @@ type StartEmulatorRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Memory in MBs
-	RamSize int32 `protobuf:"varint,1,opt,name=ram_size,json=ramSize,proto3" json:"ram_size,omitempty"`
+	RamSize uint32 `protobuf:"varint,1,opt,name=ram_size,json=ramSize,proto3" json:"ram_size,omitempty"`
 	// Number of cores.
-	CoreCount int32 `protobuf:"varint,2,opt,name=core_count,json=coreCount,proto3" json:"core_count,omitempty"`
+	CoreCount uint32 `protobuf:"varint,2,opt,name=core_count,json=coreCount,proto3" json:"core_count,omitempty"`
 	// The DPI of the main display.
-	LcdDensity int32 `protobuf:"varint,3,opt,name=lcd_density,json=lcdDensity,proto3" json:"lcd_density,omitempty"`
+	LcdDensity uint32 `protobuf:"varint,3,opt,name=lcd_density,json=lcdDensity,proto3" json:"lcd_density,omitempty"`
 	// The width of the main display.
-	LcdWidth int32 `protobuf:"varint,4,opt,name=lcd_width,json=lcdWidth,proto3" json:"lcd_width,omitempty"`
+	LcdWidth uint32 `protobuf:"varint,4,opt,name=lcd_width,json=lcdWidth,proto3" json:"lcd_width,omitempty"`
 	// The height of the main display.
-	LcdHeight int32 `protobuf:"varint,5,opt,name=lcd_height,json=lcdHeight,proto3" json:"lcd_height,omitempty"`
+	LcdHeight uint32 `protobuf:"varint,5,opt,name=lcd_height,json=lcdHeight,proto3" json:"lcd_height,omitempty"`
 }
 
 func (x *StartEmulatorRequest) Reset() {
@@ -276,35 +324,35 @@ func (*StartEmulatorRequest) Descriptor() ([]byte, []int) {
 	return file_agent_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *StartEmulatorRequest) GetRamSize() int32 {
+func (x *StartEmulatorRequest) GetRamSize() uint32 {
 	if x != nil {
 		return x.RamSize
 	}
 	return 0
 }
 
-func (x *StartEmulatorRequest) GetCoreCount() int32 {
+func (x *StartEmulatorRequest) GetCoreCount() uint32 {
 	if x != nil {
 		return x.CoreCount
 	}
 	return 0
 }
 
-func (x *StartEmulatorRequest) GetLcdDensity() int32 {
+func (x *StartEmulatorRequest) GetLcdDensity() uint32 {
 	if x != nil {
 		return x.LcdDensity
 	}
 	return 0
 }
 
-func (x *StartEmulatorRequest) GetLcdWidth() int32 {
+func (x *StartEmulatorRequest) GetLcdWidth() uint32 {
 	if x != nil {
 		return x.LcdWidth
 	}
 	return 0
 }
 
-func (x *StartEmulatorRequest) GetLcdHeight() int32 {
+func (x *StartEmulatorRequest) GetLcdHeight() uint32 {
 	if x != nil {
 		return x.LcdHeight
 	}
@@ -317,13 +365,15 @@ type StreamDisplayRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// The frame encoding format.
+	Format StreamDisplayRequest_FrameFormat `protobuf:"varint,1,opt,name=format,proto3,enum=StreamDisplayRequest_FrameFormat" json:"format,omitempty"`
 	// The maximum number of frames to encode per second.
 	// Extra frames will be dropped, with the most recent frame encoded every 1/max_fps seconds.
 	// Set to 0 to disable limit.
-	MaxFps uint32 `protobuf:"varint,1,opt,name=max_fps,json=maxFps,proto3" json:"max_fps,omitempty"`
+	MaxFps uint32 `protobuf:"varint,2,opt,name=max_fps,json=maxFps,proto3" json:"max_fps,omitempty"`
 	// How often in milliseconds to encode a keyframe.
-	// Set to 0 to only send when required.
-	KeyframeInterval uint32 `protobuf:"varint,2,opt,name=keyframe_interval,json=keyframeInterval,proto3" json:"keyframe_interval,omitempty"`
+	// Set to 0 to only send when required. Not all formats use intermediate frames.
+	KeyframeInterval uint32 `protobuf:"varint,3,opt,name=keyframe_interval,json=keyframeInterval,proto3" json:"keyframe_interval,omitempty"`
 }
 
 func (x *StreamDisplayRequest) Reset() {
@@ -358,6 +408,13 @@ func (*StreamDisplayRequest) Descriptor() ([]byte, []int) {
 	return file_agent_proto_rawDescGZIP(), []int{2}
 }
 
+func (x *StreamDisplayRequest) GetFormat() StreamDisplayRequest_FrameFormat {
+	if x != nil {
+		return x.Format
+	}
+	return StreamDisplayRequest_RGB888
+}
+
 func (x *StreamDisplayRequest) GetMaxFps() uint32 {
 	if x != nil {
 		return x.MaxFps
@@ -385,9 +442,9 @@ type DisplayFrame struct {
 	// Whether this is a key frame. For some formats, this will always be true.
 	Keyframe bool `protobuf:"varint,1,opt,name=keyframe,proto3" json:"keyframe,omitempty"`
 	// The width of the frame.
-	Width int32 `protobuf:"varint,2,opt,name=width,proto3" json:"width,omitempty"`
+	Width uint32 `protobuf:"varint,2,opt,name=width,proto3" json:"width,omitempty"`
 	// The height of the frame.
-	Height int32 `protobuf:"varint,3,opt,name=height,proto3" json:"height,omitempty"`
+	Height uint32 `protobuf:"varint,3,opt,name=height,proto3" json:"height,omitempty"`
 	// The raw frame data.
 	Data []byte `protobuf:"bytes,4,opt,name=data,proto3" json:"data,omitempty"`
 }
@@ -431,14 +488,14 @@ func (x *DisplayFrame) GetKeyframe() bool {
 	return false
 }
 
-func (x *DisplayFrame) GetWidth() int32 {
+func (x *DisplayFrame) GetWidth() uint32 {
 	if x != nil {
 		return x.Width
 	}
 	return 0
 }
 
-func (x *DisplayFrame) GetHeight() int32 {
+func (x *DisplayFrame) GetHeight() uint32 {
 	if x != nil {
 		return x.Height
 	}
@@ -1135,26 +1192,32 @@ var file_agent_proto_rawDesc = []byte{
 	0x0a, 0x07, 0x52, 0x55, 0x4e, 0x4e, 0x49, 0x4e, 0x47, 0x10, 0x03, 0x22, 0xad, 0x01, 0x0a, 0x14,
 	0x53, 0x74, 0x61, 0x72, 0x74, 0x45, 0x6d, 0x75, 0x6c, 0x61, 0x74, 0x6f, 0x72, 0x52, 0x65, 0x71,
 	0x75, 0x65, 0x73, 0x74, 0x12, 0x19, 0x0a, 0x08, 0x72, 0x61, 0x6d, 0x5f, 0x73, 0x69, 0x7a, 0x65,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x07, 0x72, 0x61, 0x6d, 0x53, 0x69, 0x7a, 0x65, 0x12,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x07, 0x72, 0x61, 0x6d, 0x53, 0x69, 0x7a, 0x65, 0x12,
 	0x1d, 0x0a, 0x0a, 0x63, 0x6f, 0x72, 0x65, 0x5f, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x18, 0x02, 0x20,
-	0x01, 0x28, 0x05, 0x52, 0x09, 0x63, 0x6f, 0x72, 0x65, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x12, 0x1f,
+	0x01, 0x28, 0x0d, 0x52, 0x09, 0x63, 0x6f, 0x72, 0x65, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x12, 0x1f,
 	0x0a, 0x0b, 0x6c, 0x63, 0x64, 0x5f, 0x64, 0x65, 0x6e, 0x73, 0x69, 0x74, 0x79, 0x18, 0x03, 0x20,
-	0x01, 0x28, 0x05, 0x52, 0x0a, 0x6c, 0x63, 0x64, 0x44, 0x65, 0x6e, 0x73, 0x69, 0x74, 0x79, 0x12,
+	0x01, 0x28, 0x0d, 0x52, 0x0a, 0x6c, 0x63, 0x64, 0x44, 0x65, 0x6e, 0x73, 0x69, 0x74, 0x79, 0x12,
 	0x1b, 0x0a, 0x09, 0x6c, 0x63, 0x64, 0x5f, 0x77, 0x69, 0x64, 0x74, 0x68, 0x18, 0x04, 0x20, 0x01,
-	0x28, 0x05, 0x52, 0x08, 0x6c, 0x63, 0x64, 0x57, 0x69, 0x64, 0x74, 0x68, 0x12, 0x1d, 0x0a, 0x0a,
-	0x6c, 0x63, 0x64, 0x5f, 0x68, 0x65, 0x69, 0x67, 0x68, 0x74, 0x18, 0x05, 0x20, 0x01, 0x28, 0x05,
-	0x52, 0x09, 0x6c, 0x63, 0x64, 0x48, 0x65, 0x69, 0x67, 0x68, 0x74, 0x22, 0x5c, 0x0a, 0x14, 0x53,
-	0x74, 0x72, 0x65, 0x61, 0x6d, 0x44, 0x69, 0x73, 0x70, 0x6c, 0x61, 0x79, 0x52, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x12, 0x17, 0x0a, 0x07, 0x6d, 0x61, 0x78, 0x5f, 0x66, 0x70, 0x73, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x0d, 0x52, 0x06, 0x6d, 0x61, 0x78, 0x46, 0x70, 0x73, 0x12, 0x2b, 0x0a, 0x11,
-	0x6b, 0x65, 0x79, 0x66, 0x72, 0x61, 0x6d, 0x65, 0x5f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x76, 0x61,
-	0x6c, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x10, 0x6b, 0x65, 0x79, 0x66, 0x72, 0x61, 0x6d,
-	0x65, 0x49, 0x6e, 0x74, 0x65, 0x72, 0x76, 0x61, 0x6c, 0x22, 0x6c, 0x0a, 0x0c, 0x44, 0x69, 0x73,
+	0x28, 0x0d, 0x52, 0x08, 0x6c, 0x63, 0x64, 0x57, 0x69, 0x64, 0x74, 0x68, 0x12, 0x1d, 0x0a, 0x0a,
+	0x6c, 0x63, 0x64, 0x5f, 0x68, 0x65, 0x69, 0x67, 0x68, 0x74, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0d,
+	0x52, 0x09, 0x6c, 0x63, 0x64, 0x48, 0x65, 0x69, 0x67, 0x68, 0x74, 0x22, 0xbb, 0x01, 0x0a, 0x14,
+	0x53, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x44, 0x69, 0x73, 0x70, 0x6c, 0x61, 0x79, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x12, 0x39, 0x0a, 0x06, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x0e, 0x32, 0x21, 0x2e, 0x53, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x44, 0x69, 0x73,
+	0x70, 0x6c, 0x61, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x2e, 0x46, 0x72, 0x61, 0x6d,
+	0x65, 0x46, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x52, 0x06, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x12,
+	0x17, 0x0a, 0x07, 0x6d, 0x61, 0x78, 0x5f, 0x66, 0x70, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0d,
+	0x52, 0x06, 0x6d, 0x61, 0x78, 0x46, 0x70, 0x73, 0x12, 0x2b, 0x0a, 0x11, 0x6b, 0x65, 0x79, 0x66,
+	0x72, 0x61, 0x6d, 0x65, 0x5f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x76, 0x61, 0x6c, 0x18, 0x03, 0x20,
+	0x01, 0x28, 0x0d, 0x52, 0x10, 0x6b, 0x65, 0x79, 0x66, 0x72, 0x61, 0x6d, 0x65, 0x49, 0x6e, 0x74,
+	0x65, 0x72, 0x76, 0x61, 0x6c, 0x22, 0x22, 0x0a, 0x0b, 0x46, 0x72, 0x61, 0x6d, 0x65, 0x46, 0x6f,
+	0x72, 0x6d, 0x61, 0x74, 0x12, 0x0a, 0x0a, 0x06, 0x52, 0x47, 0x42, 0x38, 0x38, 0x38, 0x10, 0x00,
+	0x12, 0x07, 0x0a, 0x03, 0x56, 0x50, 0x38, 0x10, 0x01, 0x22, 0x6c, 0x0a, 0x0c, 0x44, 0x69, 0x73,
 	0x70, 0x6c, 0x61, 0x79, 0x46, 0x72, 0x61, 0x6d, 0x65, 0x12, 0x1a, 0x0a, 0x08, 0x6b, 0x65, 0x79,
 	0x66, 0x72, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x08, 0x6b, 0x65, 0x79,
 	0x66, 0x72, 0x61, 0x6d, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x77, 0x69, 0x64, 0x74, 0x68, 0x18, 0x02,
-	0x20, 0x01, 0x28, 0x05, 0x52, 0x05, 0x77, 0x69, 0x64, 0x74, 0x68, 0x12, 0x16, 0x0a, 0x06, 0x68,
-	0x65, 0x69, 0x67, 0x68, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x05, 0x52, 0x06, 0x68, 0x65, 0x69,
+	0x20, 0x01, 0x28, 0x0d, 0x52, 0x05, 0x77, 0x69, 0x64, 0x74, 0x68, 0x12, 0x16, 0x0a, 0x06, 0x68,
+	0x65, 0x69, 0x67, 0x68, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x06, 0x68, 0x65, 0x69,
 	0x67, 0x68, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x61, 0x74, 0x61, 0x18, 0x04, 0x20, 0x01, 0x28,
 	0x0c, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x22, 0x23, 0x0a, 0x0d, 0x53, 0x79, 0x73, 0x53, 0x68,
 	0x65, 0x6c, 0x6c, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x12, 0x0a, 0x04, 0x6c, 0x69, 0x6e, 0x65,
@@ -1263,55 +1326,57 @@ func file_agent_proto_rawDescGZIP() []byte {
 	return file_agent_proto_rawDescData
 }
 
-var file_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
 var file_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_agent_proto_goTypes = []interface{}{
 	(AgentState_EmulatorState)(0),               // 0: AgentState.EmulatorState
-	(ShellStartRequest_ShellType)(0),            // 1: ShellStartRequest.ShellType
-	(ShellOutputResponse_ShellOutputChannel)(0), // 2: ShellOutputResponse.ShellOutputChannel
-	(*AgentState)(nil),                          // 3: AgentState
-	(*StartEmulatorRequest)(nil),                // 4: StartEmulatorRequest
-	(*StreamDisplayRequest)(nil),                // 5: StreamDisplayRequest
-	(*DisplayFrame)(nil),                        // 6: DisplayFrame
-	(*SysShellEntry)(nil),                       // 7: SysShellEntry
-	(*TouchEvent)(nil),                          // 8: TouchEvent
-	(*Touch)(nil),                               // 9: Touch
-	(*ShellRequest)(nil),                        // 10: ShellRequest
-	(*ShellStartRequest)(nil),                   // 11: ShellStartRequest
-	(*ShellStdInRequest)(nil),                   // 12: ShellStdInRequest
-	(*ShellResizeRequest)(nil),                  // 13: ShellResizeRequest
-	(*ShellResponse)(nil),                       // 14: ShellResponse
-	(*ShellOutputResponse)(nil),                 // 15: ShellOutputResponse
-	(*ShellExitResponse)(nil),                   // 16: ShellExitResponse
-	(*empty.Empty)(nil),                         // 17: google.protobuf.Empty
+	(StreamDisplayRequest_FrameFormat)(0),       // 1: StreamDisplayRequest.FrameFormat
+	(ShellStartRequest_ShellType)(0),            // 2: ShellStartRequest.ShellType
+	(ShellOutputResponse_ShellOutputChannel)(0), // 3: ShellOutputResponse.ShellOutputChannel
+	(*AgentState)(nil),                          // 4: AgentState
+	(*StartEmulatorRequest)(nil),                // 5: StartEmulatorRequest
+	(*StreamDisplayRequest)(nil),                // 6: StreamDisplayRequest
+	(*DisplayFrame)(nil),                        // 7: DisplayFrame
+	(*SysShellEntry)(nil),                       // 8: SysShellEntry
+	(*TouchEvent)(nil),                          // 9: TouchEvent
+	(*Touch)(nil),                               // 10: Touch
+	(*ShellRequest)(nil),                        // 11: ShellRequest
+	(*ShellStartRequest)(nil),                   // 12: ShellStartRequest
+	(*ShellStdInRequest)(nil),                   // 13: ShellStdInRequest
+	(*ShellResizeRequest)(nil),                  // 14: ShellResizeRequest
+	(*ShellResponse)(nil),                       // 15: ShellResponse
+	(*ShellOutputResponse)(nil),                 // 16: ShellOutputResponse
+	(*ShellExitResponse)(nil),                   // 17: ShellExitResponse
+	(*empty.Empty)(nil),                         // 18: google.protobuf.Empty
 }
 var file_agent_proto_depIdxs = []int32{
 	0,  // 0: AgentState.emulator_state:type_name -> AgentState.EmulatorState
-	9,  // 1: TouchEvent.touches:type_name -> Touch
-	11, // 2: ShellRequest.start:type_name -> ShellStartRequest
-	12, // 3: ShellRequest.stdin:type_name -> ShellStdInRequest
-	13, // 4: ShellRequest.resize:type_name -> ShellResizeRequest
-	1,  // 5: ShellStartRequest.shell_type:type_name -> ShellStartRequest.ShellType
-	15, // 6: ShellResponse.output:type_name -> ShellOutputResponse
-	16, // 7: ShellResponse.exit:type_name -> ShellExitResponse
-	2,  // 8: ShellOutputResponse.channel:type_name -> ShellOutputResponse.ShellOutputChannel
-	17, // 9: AgentController.streamState:input_type -> google.protobuf.Empty
-	4,  // 10: AgentController.startEmulator:input_type -> StartEmulatorRequest
-	5,  // 11: AgentController.streamDisplay:input_type -> StreamDisplayRequest
-	17, // 12: AgentController.streamSysShell:input_type -> google.protobuf.Empty
-	8,  // 13: AgentController.sendInput:input_type -> TouchEvent
-	10, // 14: AgentController.openShell:input_type -> ShellRequest
-	3,  // 15: AgentController.streamState:output_type -> AgentState
-	17, // 16: AgentController.startEmulator:output_type -> google.protobuf.Empty
-	6,  // 17: AgentController.streamDisplay:output_type -> DisplayFrame
-	7,  // 18: AgentController.streamSysShell:output_type -> SysShellEntry
-	17, // 19: AgentController.sendInput:output_type -> google.protobuf.Empty
-	14, // 20: AgentController.openShell:output_type -> ShellResponse
-	15, // [15:21] is the sub-list for method output_type
-	9,  // [9:15] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	1,  // 1: StreamDisplayRequest.format:type_name -> StreamDisplayRequest.FrameFormat
+	10, // 2: TouchEvent.touches:type_name -> Touch
+	12, // 3: ShellRequest.start:type_name -> ShellStartRequest
+	13, // 4: ShellRequest.stdin:type_name -> ShellStdInRequest
+	14, // 5: ShellRequest.resize:type_name -> ShellResizeRequest
+	2,  // 6: ShellStartRequest.shell_type:type_name -> ShellStartRequest.ShellType
+	16, // 7: ShellResponse.output:type_name -> ShellOutputResponse
+	17, // 8: ShellResponse.exit:type_name -> ShellExitResponse
+	3,  // 9: ShellOutputResponse.channel:type_name -> ShellOutputResponse.ShellOutputChannel
+	18, // 10: AgentController.streamState:input_type -> google.protobuf.Empty
+	5,  // 11: AgentController.startEmulator:input_type -> StartEmulatorRequest
+	6,  // 12: AgentController.streamDisplay:input_type -> StreamDisplayRequest
+	18, // 13: AgentController.streamSysShell:input_type -> google.protobuf.Empty
+	9,  // 14: AgentController.sendInput:input_type -> TouchEvent
+	11, // 15: AgentController.openShell:input_type -> ShellRequest
+	4,  // 16: AgentController.streamState:output_type -> AgentState
+	18, // 17: AgentController.startEmulator:output_type -> google.protobuf.Empty
+	7,  // 18: AgentController.streamDisplay:output_type -> DisplayFrame
+	8,  // 19: AgentController.streamSysShell:output_type -> SysShellEntry
+	18, // 20: AgentController.sendInput:output_type -> google.protobuf.Empty
+	15, // 21: AgentController.openShell:output_type -> ShellResponse
+	16, // [16:22] is the sub-list for method output_type
+	10, // [10:16] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_agent_proto_init() }
@@ -1504,7 +1569,7 @@ func file_agent_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_agent_proto_rawDesc,
-			NumEnums:      3,
+			NumEnums:      4,
 			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,

@@ -15,8 +15,8 @@ import (
 )
 
 type Frame struct {
-	Width  int
-	Height int
+	Width  uint32
+	Height uint32
 	Data   []byte
 }
 
@@ -158,8 +158,8 @@ func (e *Emulator) processDisplay() {
 		}
 
 		e.monitor.OnEmulatorFrame(Frame{
-			Width:  int(e.request.LcdWidth),
-			Height: int(e.request.LcdHeight),
+			Width:  e.request.LcdWidth,
+			Height: e.request.LcdHeight,
 			Data:   data,
 		})
 	}

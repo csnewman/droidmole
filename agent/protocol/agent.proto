@@ -53,28 +53,38 @@ message AgentState {
 //   Display 720x1280 320dpi
 message StartEmulatorRequest {
   // Memory in MBs
-  int32 ram_size = 1;
+  uint32 ram_size = 1;
   // Number of cores.
-  int32 core_count = 2;
+  uint32 core_count = 2;
 
   // The DPI of the main display.
-  int32 lcd_density = 3;
+  uint32 lcd_density = 3;
   // The width of the main display.
-  int32 lcd_width = 4;
+  uint32 lcd_width = 4;
   // The height of the main display.
-  int32 lcd_height = 5;
+  uint32 lcd_height = 5;
 }
 
 // Requests the display is streamed with the given configuration.
 message StreamDisplayRequest {
+  enum FrameFormat {
+    // 3 bytes per pixel.
+    RGB888 = 0;
+    // VP8 codec. Uses intermediate frames.
+    VP8 = 1;
+  }
+
+  // The frame encoding format.
+  FrameFormat format = 1;
+
   // The maximum number of frames to encode per second.
   // Extra frames will be dropped, with the most recent frame encoded every 1/max_fps seconds.
   // Set to 0 to disable limit.
-  uint32 max_fps = 1;
+  uint32 max_fps = 2;
 
   // How often in milliseconds to encode a keyframe.
-  // Set to 0 to only send when required.
-  uint32 keyframe_interval = 2;
+  // Set to 0 to only send when required. Not all formats use intermediate frames.
+  uint32 keyframe_interval = 3;
 }
 
 // A single display frame.
@@ -86,9 +96,9 @@ message DisplayFrame {
   // Whether this is a key frame. For some formats, this will always be true.
   bool keyframe = 1;
   // The width of the frame.
-  int32 width = 2;
+  uint32 width = 2;
   // The height of the frame.
-  int32 height = 3;
+  uint32 height = 3;
   // The raw frame data.
   bytes data = 4;
 }

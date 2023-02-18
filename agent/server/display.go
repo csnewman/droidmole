@@ -59,9 +59,9 @@ type displayProcessor struct {
 	img           *vpx.Image
 	codecCtx      *vpx.CodecCtx
 	request       *protocol.StreamDisplayRequest
-	width         int
-	height        int
-	frameCount    int
+	width         uint32
+	height        uint32
+	frameCount    uint32
 	lastKeyframe  time.Time
 }
 
@@ -91,8 +91,8 @@ func (p *displayProcessor) processFrame() error {
 
 		return p.sds.Send(&protocol.DisplayFrame{
 			Keyframe: true,
-			Width:    int32(0),
-			Height:   int32(0),
+			Width:    uint32(0),
+			Height:   uint32(0),
 			Data:     []byte{},
 		})
 	}
@@ -174,8 +174,8 @@ func (p *displayProcessor) processFrame() error {
 
 		err := p.sds.Send(&protocol.DisplayFrame{
 			Keyframe: keyframe,
-			Width:    int32(p.width),
-			Height:   int32(p.height),
+			Width:    p.width,
+			Height:   p.height,
 			Data:     pkt,
 		})
 		if err != nil {

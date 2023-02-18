@@ -27,9 +27,9 @@ func Process(server protocol.AgentController_OpenShellServer) error {
 	}
 
 	switch startMsg.ShellType {
-	case protocol.StartShellRequest_RAW:
+	case protocol.ShellStartRequest_RAW:
 		cmd += ",raw"
-	case protocol.StartShellRequest_PTY:
+	case protocol.ShellStartRequest_PTY:
 		cmd += ",pty"
 	default:
 		return status.Errorf(codes.InvalidArgument, "unknown shell type")
