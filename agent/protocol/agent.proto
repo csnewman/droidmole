@@ -4,41 +4,68 @@ option go_package = "./protocol";
 
 import "google/protobuf/empty.proto";
 
+// The AgentController service exposes controls and state to enable emulator management
 service AgentController {
+  // Streams the state of the agent process.
+  // An initial value will be immediately produced with the current agent state. Subsequent values may indicate a change
+  // in the agent state, however this is not guaranteed and the same state can be delivered multiple times.
   rpc streamState(google.protobuf.Empty) returns (stream AgentState);
 
+  // Requests the emulator starts. An error will be returned if the emulator is already running.
   rpc startEmulator(StartEmulatorRequest) returns (google.protobuf.Empty);
 
-  rpc streamDisplay(StreamDisplayRequest) returns (stream DisplayFrame) {}
+  // Streams the display in the requested format.
+  // An initial value will be immediately produced with the current display content. This stream can and should be
+  // started before the emulator is started to ensure no frames are missed. The stream will is persistent between
+  // emulator restarts.
+  rpc streamDisplay(StreamDisplayRequest) returns (stream DisplayFrame);
 
-  rpc streamSysShell(google.protobuf.Empty) returns (stream SysShellEntry) {}
+  rpc streamSysShell(google.protobuf.Empty) returns (stream SysShellEntry);
 
-  rpc sendInput(TouchEvent) returns (google.protobuf.Empty) {}
+  rpc sendInput(TouchEvent) returns (google.protobuf.Empty);
+
+  // Opens an ADB shell to the emulator.
+  // Requires that the emulator has reached the "running" state, otherwise an error will be returned.
+  // The request stream must start with a single ShellStartRequest message.
+  rpc openShell(stream ShellRequest) returns (stream ShellResponse);
 }
 
+// AgentState describes the current state of the agent process and the virtual machine being controlled.
 message AgentState {
   enum EmulatorState {
+    // The emulator failed to start.
     ERROR = 0;
+    // The emulator is off.
     OFF = 1;
+    // The emulator is booting.
     STARTING = 2;
+    // The emulator is running and adb has connected.
     RUNNING = 3;
   }
 
+  // The state of the emulator.
   EmulatorState emulator_state = 1;
 }
 
-// Recommended Settings:
-// Ram: 2048 Cores: 1
-// Display 720x1280 320dpi
+// Requests the emulator boots with the given configuration.
+// Example Settings:
+//   Ram: 2048 Cores: 1
+//   Display 720x1280 320dpi
 message StartEmulatorRequest {
+  // Memory in MBs
   int32 ram_size = 1;
+  // Number of cores.
   int32 core_count = 2;
 
+  // The DPI of the main display.
   int32 lcd_density = 3;
+  // The width of the main display.
   int32 lcd_width = 4;
+  // The height of the main display.
   int32 lcd_height = 5;
 }
 
+// Requests the display is streamed with the given configuration.
 message StreamDisplayRequest {
   // The maximum number of frames to encode per second.
   // Extra frames will be dropped, with the most recent frame encoded every 1/max_fps seconds.
@@ -50,10 +77,19 @@ message StreamDisplayRequest {
   uint32 keyframe_interval = 2;
 }
 
+// A single display frame.
+// Based on the format requested, this may not be a keyframe.
+// A frame with zero width and height signifies the display is off. Clients should display a blank screen.
+// The width and height can change on a keyframe, which can occur if the emulator is restarted with a different
+// configuration.
 message DisplayFrame {
+  // Whether this is a key frame. For some formats, this will always be true.
   bool keyframe = 1;
+  // The width of the frame.
   int32 width = 2;
+  // The height of the frame.
   int32 height = 3;
+  // The raw frame data.
   bytes data = 4;
 }
 
@@ -74,4 +110,82 @@ message Touch {
   int32 pressure = 4;
   int32 touch_major = 5;
   int32 touch_minor = 6;
+}
+
+// An input message to the shell.
+message ShellRequest {
+  oneof message {
+    ShellStartRequest start = 1;
+    ShellStdInRequest stdin = 2;
+    ShellResizeRequest resize = 3;
+  }
+}
+
+// Requests the given command is spawned.
+message ShellStartRequest {
+  enum ShellType {
+    // Do not spawn a PTY
+    RAW = 0;
+    // Spawn a PTY
+    PTY = 1;
+  }
+
+  // Shell type
+  ShellType shell_type = 1;
+
+  // The command to execute.
+  // Specify no command to spawn an interactive shell.
+  optional string command = 2;
+
+  // The "TERM=" environment value.
+  optional string term_type = 3;
+}
+
+// Feeds data into the stdin stream of the shell.
+message ShellStdInRequest {
+  // The raw blob to feed in.
+  bytes data = 1;
+  // Whether to close the stdin after this blob.
+  bool close = 2;
+}
+
+// Notifies the shell that the screen has changed size.
+message ShellResizeRequest {
+  // Characters
+  uint32 rows = 1;
+  uint32 cols = 2;
+
+  // Pixels
+  uint32 width = 3;
+  uint32 height = 4;
+}
+
+// An output message from the shell.
+message ShellResponse {
+  oneof message {
+    ShellOutputResponse output = 1;
+    ShellExitResponse exit = 2;
+  }
+}
+
+// The output from a shell.
+message ShellOutputResponse {
+  enum ShellOutputChannel {
+    // Stdout
+    OUT = 0;
+    // Stderr
+    ERR = 1;
+  }
+
+  // The channel.
+  ShellOutputChannel channel = 1;
+
+  // The raw blob.
+  bytes data = 2;
+}
+
+// A notification that the shell has terminated.
+message ShellExitResponse {
+  // The exit code.
+  uint32 code = 1;
 }

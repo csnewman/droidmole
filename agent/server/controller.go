@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/csnewman/droidmole/agent/protocol"
 	"github.com/csnewman/droidmole/agent/server/emulator"
+	"github.com/csnewman/droidmole/agent/server/shell"
 	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -96,4 +97,20 @@ func (s *agentControllerServer) StreamSysShell(_ *empty.Empty, server protocol.A
 			return err
 		}
 	}
+}
+
+func (s *agentControllerServer) OpenShell(server protocol.AgentController_OpenShellServer) error {
+	var respError error
+
+	s.server.mu.Lock()
+	if s.server.state != StateRunning {
+		respError = status.Errorf(codes.FailedPrecondition, "emulator not running")
+	}
+	s.server.mu.Unlock()
+
+	if respError != nil {
+		return respError
+	}
+
+	return shell.Process(server)
 }

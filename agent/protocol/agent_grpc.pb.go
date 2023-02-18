@@ -23,11 +23,23 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AgentControllerClient interface {
+	// Streams the state of the agent process.
+	// An initial value will be immediately produced with the current agent state. Subsequent values may indicate a change
+	// in the agent state, however this is not guaranteed and the same state can be delivered multiple times.
 	StreamState(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (AgentController_StreamStateClient, error)
+	// Requests the emulator starts. An error will be returned if the emulator is already running.
 	StartEmulator(ctx context.Context, in *StartEmulatorRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	// Streams the display in the requested format.
+	// An initial value will be immediately produced with the current display content. This stream can and should be
+	// started before the emulator is started to ensure no frames are missed. The stream will is persistent between
+	// emulator restarts.
 	StreamDisplay(ctx context.Context, in *StreamDisplayRequest, opts ...grpc.CallOption) (AgentController_StreamDisplayClient, error)
 	StreamSysShell(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (AgentController_StreamSysShellClient, error)
 	SendInput(ctx context.Context, in *TouchEvent, opts ...grpc.CallOption) (*empty.Empty, error)
+	// Opens an ADB shell to the emulator.
+	// Requires that the emulator has reached the "running" state, otherwise an error will be returned.
+	// The request stream must start with a single ShellStartRequest message.
+	OpenShell(ctx context.Context, opts ...grpc.CallOption) (AgentController_OpenShellClient, error)
 }
 
 type agentControllerClient struct {
@@ -152,15 +164,58 @@ func (c *agentControllerClient) SendInput(ctx context.Context, in *TouchEvent, o
 	return out, nil
 }
 
+func (c *agentControllerClient) OpenShell(ctx context.Context, opts ...grpc.CallOption) (AgentController_OpenShellClient, error) {
+	stream, err := c.cc.NewStream(ctx, &AgentController_ServiceDesc.Streams[3], "/AgentController/openShell", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &agentControllerOpenShellClient{stream}
+	return x, nil
+}
+
+type AgentController_OpenShellClient interface {
+	Send(*ShellRequest) error
+	Recv() (*ShellResponse, error)
+	grpc.ClientStream
+}
+
+type agentControllerOpenShellClient struct {
+	grpc.ClientStream
+}
+
+func (x *agentControllerOpenShellClient) Send(m *ShellRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *agentControllerOpenShellClient) Recv() (*ShellResponse, error) {
+	m := new(ShellResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // AgentControllerServer is the server API for AgentController service.
 // All implementations must embed UnimplementedAgentControllerServer
 // for forward compatibility
 type AgentControllerServer interface {
+	// Streams the state of the agent process.
+	// An initial value will be immediately produced with the current agent state. Subsequent values may indicate a change
+	// in the agent state, however this is not guaranteed and the same state can be delivered multiple times.
 	StreamState(*empty.Empty, AgentController_StreamStateServer) error
+	// Requests the emulator starts. An error will be returned if the emulator is already running.
 	StartEmulator(context.Context, *StartEmulatorRequest) (*empty.Empty, error)
+	// Streams the display in the requested format.
+	// An initial value will be immediately produced with the current display content. This stream can and should be
+	// started before the emulator is started to ensure no frames are missed. The stream will is persistent between
+	// emulator restarts.
 	StreamDisplay(*StreamDisplayRequest, AgentController_StreamDisplayServer) error
 	StreamSysShell(*empty.Empty, AgentController_StreamSysShellServer) error
 	SendInput(context.Context, *TouchEvent) (*empty.Empty, error)
+	// Opens an ADB shell to the emulator.
+	// Requires that the emulator has reached the "running" state, otherwise an error will be returned.
+	// The request stream must start with a single ShellStartRequest message.
+	OpenShell(AgentController_OpenShellServer) error
 	mustEmbedUnimplementedAgentControllerServer()
 }
 
@@ -182,6 +237,9 @@ func (UnimplementedAgentControllerServer) StreamSysShell(*empty.Empty, AgentCont
 }
 func (UnimplementedAgentControllerServer) SendInput(context.Context, *TouchEvent) (*empty.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendInput not implemented")
+}
+func (UnimplementedAgentControllerServer) OpenShell(AgentController_OpenShellServer) error {
+	return status.Errorf(codes.Unimplemented, "method OpenShell not implemented")
 }
 func (UnimplementedAgentControllerServer) mustEmbedUnimplementedAgentControllerServer() {}
 
@@ -295,6 +353,32 @@ func _AgentController_SendInput_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentController_OpenShell_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(AgentControllerServer).OpenShell(&agentControllerOpenShellServer{stream})
+}
+
+type AgentController_OpenShellServer interface {
+	Send(*ShellResponse) error
+	Recv() (*ShellRequest, error)
+	grpc.ServerStream
+}
+
+type agentControllerOpenShellServer struct {
+	grpc.ServerStream
+}
+
+func (x *agentControllerOpenShellServer) Send(m *ShellResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *agentControllerOpenShellServer) Recv() (*ShellRequest, error) {
+	m := new(ShellRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // AgentController_ServiceDesc is the grpc.ServiceDesc for AgentController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -326,6 +410,12 @@ var AgentController_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "streamSysShell",
 			Handler:       _AgentController_StreamSysShell_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "openShell",
+			Handler:       _AgentController_OpenShell_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "agent.proto",

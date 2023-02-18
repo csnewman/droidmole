@@ -24,10 +24,14 @@ const (
 type AgentState_EmulatorState int32
 
 const (
-	AgentState_ERROR    AgentState_EmulatorState = 0
-	AgentState_OFF      AgentState_EmulatorState = 1
+	// The emulator failed to start.
+	AgentState_ERROR AgentState_EmulatorState = 0
+	// The emulator is off.
+	AgentState_OFF AgentState_EmulatorState = 1
+	// The emulator is booting.
 	AgentState_STARTING AgentState_EmulatorState = 2
-	AgentState_RUNNING  AgentState_EmulatorState = 3
+	// The emulator is running and adb has connected.
+	AgentState_RUNNING AgentState_EmulatorState = 3
 )
 
 // Enum value maps for AgentState_EmulatorState.
@@ -73,11 +77,109 @@ func (AgentState_EmulatorState) EnumDescriptor() ([]byte, []int) {
 	return file_agent_proto_rawDescGZIP(), []int{0, 0}
 }
 
+type ShellStartRequest_ShellType int32
+
+const (
+	// Do not spawn a PTY
+	ShellStartRequest_RAW ShellStartRequest_ShellType = 0
+	// Spawn a PTY
+	ShellStartRequest_PTY ShellStartRequest_ShellType = 1
+)
+
+// Enum value maps for ShellStartRequest_ShellType.
+var (
+	ShellStartRequest_ShellType_name = map[int32]string{
+		0: "RAW",
+		1: "PTY",
+	}
+	ShellStartRequest_ShellType_value = map[string]int32{
+		"RAW": 0,
+		"PTY": 1,
+	}
+)
+
+func (x ShellStartRequest_ShellType) Enum() *ShellStartRequest_ShellType {
+	p := new(ShellStartRequest_ShellType)
+	*p = x
+	return p
+}
+
+func (x ShellStartRequest_ShellType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ShellStartRequest_ShellType) Descriptor() protoreflect.EnumDescriptor {
+	return file_agent_proto_enumTypes[1].Descriptor()
+}
+
+func (ShellStartRequest_ShellType) Type() protoreflect.EnumType {
+	return &file_agent_proto_enumTypes[1]
+}
+
+func (x ShellStartRequest_ShellType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ShellStartRequest_ShellType.Descriptor instead.
+func (ShellStartRequest_ShellType) EnumDescriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{8, 0}
+}
+
+type ShellOutputResponse_ShellOutputChannel int32
+
+const (
+	// Stdout
+	ShellOutputResponse_OUT ShellOutputResponse_ShellOutputChannel = 0
+	// Stderr
+	ShellOutputResponse_ERR ShellOutputResponse_ShellOutputChannel = 1
+)
+
+// Enum value maps for ShellOutputResponse_ShellOutputChannel.
+var (
+	ShellOutputResponse_ShellOutputChannel_name = map[int32]string{
+		0: "OUT",
+		1: "ERR",
+	}
+	ShellOutputResponse_ShellOutputChannel_value = map[string]int32{
+		"OUT": 0,
+		"ERR": 1,
+	}
+)
+
+func (x ShellOutputResponse_ShellOutputChannel) Enum() *ShellOutputResponse_ShellOutputChannel {
+	p := new(ShellOutputResponse_ShellOutputChannel)
+	*p = x
+	return p
+}
+
+func (x ShellOutputResponse_ShellOutputChannel) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ShellOutputResponse_ShellOutputChannel) Descriptor() protoreflect.EnumDescriptor {
+	return file_agent_proto_enumTypes[2].Descriptor()
+}
+
+func (ShellOutputResponse_ShellOutputChannel) Type() protoreflect.EnumType {
+	return &file_agent_proto_enumTypes[2]
+}
+
+func (x ShellOutputResponse_ShellOutputChannel) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ShellOutputResponse_ShellOutputChannel.Descriptor instead.
+func (ShellOutputResponse_ShellOutputChannel) EnumDescriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{12, 0}
+}
+
+// AgentState describes the current state of the agent process and the virtual machine being controlled.
 type AgentState struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// The state of the emulator.
 	EmulatorState AgentState_EmulatorState `protobuf:"varint,1,opt,name=emulator_state,json=emulatorState,proto3,enum=AgentState_EmulatorState" json:"emulator_state,omitempty"`
 }
 
@@ -120,19 +222,26 @@ func (x *AgentState) GetEmulatorState() AgentState_EmulatorState {
 	return AgentState_ERROR
 }
 
-// Recommended Settings:
-// Ram: 2048 Cores: 1
-// Display 720x1280 320dpi
+// Requests the emulator boots with the given configuration.
+// Example Settings:
+//
+//	Ram: 2048 Cores: 1
+//	Display 720x1280 320dpi
 type StartEmulatorRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	RamSize    int32 `protobuf:"varint,1,opt,name=ram_size,json=ramSize,proto3" json:"ram_size,omitempty"`
-	CoreCount  int32 `protobuf:"varint,2,opt,name=core_count,json=coreCount,proto3" json:"core_count,omitempty"`
+	// Memory in MBs
+	RamSize int32 `protobuf:"varint,1,opt,name=ram_size,json=ramSize,proto3" json:"ram_size,omitempty"`
+	// Number of cores.
+	CoreCount int32 `protobuf:"varint,2,opt,name=core_count,json=coreCount,proto3" json:"core_count,omitempty"`
+	// The DPI of the main display.
 	LcdDensity int32 `protobuf:"varint,3,opt,name=lcd_density,json=lcdDensity,proto3" json:"lcd_density,omitempty"`
-	LcdWidth   int32 `protobuf:"varint,4,opt,name=lcd_width,json=lcdWidth,proto3" json:"lcd_width,omitempty"`
-	LcdHeight  int32 `protobuf:"varint,5,opt,name=lcd_height,json=lcdHeight,proto3" json:"lcd_height,omitempty"`
+	// The width of the main display.
+	LcdWidth int32 `protobuf:"varint,4,opt,name=lcd_width,json=lcdWidth,proto3" json:"lcd_width,omitempty"`
+	// The height of the main display.
+	LcdHeight int32 `protobuf:"varint,5,opt,name=lcd_height,json=lcdHeight,proto3" json:"lcd_height,omitempty"`
 }
 
 func (x *StartEmulatorRequest) Reset() {
@@ -202,6 +311,7 @@ func (x *StartEmulatorRequest) GetLcdHeight() int32 {
 	return 0
 }
 
+// Requests the display is streamed with the given configuration.
 type StreamDisplayRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -262,15 +372,24 @@ func (x *StreamDisplayRequest) GetKeyframeInterval() uint32 {
 	return 0
 }
 
+// A single display frame.
+// Based on the format requested, this may not be a keyframe.
+// A frame with zero width and height signifies the display is off. Clients should display a blank screen.
+// The width and height can change on a keyframe, which can occur if the emulator is restarted with a different
+// configuration.
 type DisplayFrame struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Keyframe bool   `protobuf:"varint,1,opt,name=keyframe,proto3" json:"keyframe,omitempty"`
-	Width    int32  `protobuf:"varint,2,opt,name=width,proto3" json:"width,omitempty"`
-	Height   int32  `protobuf:"varint,3,opt,name=height,proto3" json:"height,omitempty"`
-	Data     []byte `protobuf:"bytes,4,opt,name=data,proto3" json:"data,omitempty"`
+	// Whether this is a key frame. For some formats, this will always be true.
+	Keyframe bool `protobuf:"varint,1,opt,name=keyframe,proto3" json:"keyframe,omitempty"`
+	// The width of the frame.
+	Width int32 `protobuf:"varint,2,opt,name=width,proto3" json:"width,omitempty"`
+	// The height of the frame.
+	Height int32 `protobuf:"varint,3,opt,name=height,proto3" json:"height,omitempty"`
+	// The raw frame data.
+	Data []byte `protobuf:"bytes,4,opt,name=data,proto3" json:"data,omitempty"`
 }
 
 func (x *DisplayFrame) Reset() {
@@ -514,6 +633,491 @@ func (x *Touch) GetTouchMinor() int32 {
 	return 0
 }
 
+// An input message to the shell.
+type ShellRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// Types that are assignable to Message:
+	//
+	//	*ShellRequest_Start
+	//	*ShellRequest_Stdin
+	//	*ShellRequest_Resize
+	Message isShellRequest_Message `protobuf_oneof:"message"`
+}
+
+func (x *ShellRequest) Reset() {
+	*x = ShellRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_agent_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ShellRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ShellRequest) ProtoMessage() {}
+
+func (x *ShellRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ShellRequest.ProtoReflect.Descriptor instead.
+func (*ShellRequest) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{7}
+}
+
+func (m *ShellRequest) GetMessage() isShellRequest_Message {
+	if m != nil {
+		return m.Message
+	}
+	return nil
+}
+
+func (x *ShellRequest) GetStart() *ShellStartRequest {
+	if x, ok := x.GetMessage().(*ShellRequest_Start); ok {
+		return x.Start
+	}
+	return nil
+}
+
+func (x *ShellRequest) GetStdin() *ShellStdInRequest {
+	if x, ok := x.GetMessage().(*ShellRequest_Stdin); ok {
+		return x.Stdin
+	}
+	return nil
+}
+
+func (x *ShellRequest) GetResize() *ShellResizeRequest {
+	if x, ok := x.GetMessage().(*ShellRequest_Resize); ok {
+		return x.Resize
+	}
+	return nil
+}
+
+type isShellRequest_Message interface {
+	isShellRequest_Message()
+}
+
+type ShellRequest_Start struct {
+	Start *ShellStartRequest `protobuf:"bytes,1,opt,name=start,proto3,oneof"`
+}
+
+type ShellRequest_Stdin struct {
+	Stdin *ShellStdInRequest `protobuf:"bytes,2,opt,name=stdin,proto3,oneof"`
+}
+
+type ShellRequest_Resize struct {
+	Resize *ShellResizeRequest `protobuf:"bytes,3,opt,name=resize,proto3,oneof"`
+}
+
+func (*ShellRequest_Start) isShellRequest_Message() {}
+
+func (*ShellRequest_Stdin) isShellRequest_Message() {}
+
+func (*ShellRequest_Resize) isShellRequest_Message() {}
+
+// Requests the given command is spawned.
+type ShellStartRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// Shell type
+	ShellType ShellStartRequest_ShellType `protobuf:"varint,1,opt,name=shell_type,json=shellType,proto3,enum=ShellStartRequest_ShellType" json:"shell_type,omitempty"`
+	// The command to execute.
+	// Specify no command to spawn an interactive shell.
+	Command *string `protobuf:"bytes,2,opt,name=command,proto3,oneof" json:"command,omitempty"`
+	// The "TERM=" environment value.
+	TermType *string `protobuf:"bytes,3,opt,name=term_type,json=termType,proto3,oneof" json:"term_type,omitempty"`
+}
+
+func (x *ShellStartRequest) Reset() {
+	*x = ShellStartRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_agent_proto_msgTypes[8]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ShellStartRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ShellStartRequest) ProtoMessage() {}
+
+func (x *ShellStartRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[8]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ShellStartRequest.ProtoReflect.Descriptor instead.
+func (*ShellStartRequest) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ShellStartRequest) GetShellType() ShellStartRequest_ShellType {
+	if x != nil {
+		return x.ShellType
+	}
+	return ShellStartRequest_RAW
+}
+
+func (x *ShellStartRequest) GetCommand() string {
+	if x != nil && x.Command != nil {
+		return *x.Command
+	}
+	return ""
+}
+
+func (x *ShellStartRequest) GetTermType() string {
+	if x != nil && x.TermType != nil {
+		return *x.TermType
+	}
+	return ""
+}
+
+// Feeds data into the stdin stream of the shell.
+type ShellStdInRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// The raw blob to feed in.
+	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	// Whether to close the stdin after this blob.
+	Close bool `protobuf:"varint,2,opt,name=close,proto3" json:"close,omitempty"`
+}
+
+func (x *ShellStdInRequest) Reset() {
+	*x = ShellStdInRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_agent_proto_msgTypes[9]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ShellStdInRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ShellStdInRequest) ProtoMessage() {}
+
+func (x *ShellStdInRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[9]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ShellStdInRequest.ProtoReflect.Descriptor instead.
+func (*ShellStdInRequest) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ShellStdInRequest) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+func (x *ShellStdInRequest) GetClose() bool {
+	if x != nil {
+		return x.Close
+	}
+	return false
+}
+
+// Notifies the shell that the screen has changed size.
+type ShellResizeRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// Characters
+	Rows uint32 `protobuf:"varint,1,opt,name=rows,proto3" json:"rows,omitempty"`
+	Cols uint32 `protobuf:"varint,2,opt,name=cols,proto3" json:"cols,omitempty"`
+	// Pixels
+	Width  uint32 `protobuf:"varint,3,opt,name=width,proto3" json:"width,omitempty"`
+	Height uint32 `protobuf:"varint,4,opt,name=height,proto3" json:"height,omitempty"`
+}
+
+func (x *ShellResizeRequest) Reset() {
+	*x = ShellResizeRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_agent_proto_msgTypes[10]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ShellResizeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ShellResizeRequest) ProtoMessage() {}
+
+func (x *ShellResizeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[10]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ShellResizeRequest.ProtoReflect.Descriptor instead.
+func (*ShellResizeRequest) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ShellResizeRequest) GetRows() uint32 {
+	if x != nil {
+		return x.Rows
+	}
+	return 0
+}
+
+func (x *ShellResizeRequest) GetCols() uint32 {
+	if x != nil {
+		return x.Cols
+	}
+	return 0
+}
+
+func (x *ShellResizeRequest) GetWidth() uint32 {
+	if x != nil {
+		return x.Width
+	}
+	return 0
+}
+
+func (x *ShellResizeRequest) GetHeight() uint32 {
+	if x != nil {
+		return x.Height
+	}
+	return 0
+}
+
+// An output message from the shell.
+type ShellResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// Types that are assignable to Message:
+	//
+	//	*ShellResponse_Output
+	//	*ShellResponse_Exit
+	Message isShellResponse_Message `protobuf_oneof:"message"`
+}
+
+func (x *ShellResponse) Reset() {
+	*x = ShellResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_agent_proto_msgTypes[11]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ShellResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ShellResponse) ProtoMessage() {}
+
+func (x *ShellResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[11]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ShellResponse.ProtoReflect.Descriptor instead.
+func (*ShellResponse) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{11}
+}
+
+func (m *ShellResponse) GetMessage() isShellResponse_Message {
+	if m != nil {
+		return m.Message
+	}
+	return nil
+}
+
+func (x *ShellResponse) GetOutput() *ShellOutputResponse {
+	if x, ok := x.GetMessage().(*ShellResponse_Output); ok {
+		return x.Output
+	}
+	return nil
+}
+
+func (x *ShellResponse) GetExit() *ShellExitResponse {
+	if x, ok := x.GetMessage().(*ShellResponse_Exit); ok {
+		return x.Exit
+	}
+	return nil
+}
+
+type isShellResponse_Message interface {
+	isShellResponse_Message()
+}
+
+type ShellResponse_Output struct {
+	Output *ShellOutputResponse `protobuf:"bytes,1,opt,name=output,proto3,oneof"`
+}
+
+type ShellResponse_Exit struct {
+	Exit *ShellExitResponse `protobuf:"bytes,2,opt,name=exit,proto3,oneof"`
+}
+
+func (*ShellResponse_Output) isShellResponse_Message() {}
+
+func (*ShellResponse_Exit) isShellResponse_Message() {}
+
+// The output from a shell.
+type ShellOutputResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// The channel.
+	Channel ShellOutputResponse_ShellOutputChannel `protobuf:"varint,1,opt,name=channel,proto3,enum=ShellOutputResponse_ShellOutputChannel" json:"channel,omitempty"`
+	// The raw blob.
+	Data []byte `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+}
+
+func (x *ShellOutputResponse) Reset() {
+	*x = ShellOutputResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_agent_proto_msgTypes[12]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ShellOutputResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ShellOutputResponse) ProtoMessage() {}
+
+func (x *ShellOutputResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[12]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ShellOutputResponse.ProtoReflect.Descriptor instead.
+func (*ShellOutputResponse) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ShellOutputResponse) GetChannel() ShellOutputResponse_ShellOutputChannel {
+	if x != nil {
+		return x.Channel
+	}
+	return ShellOutputResponse_OUT
+}
+
+func (x *ShellOutputResponse) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+// A notification that the shell has terminated.
+type ShellExitResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// The exit code.
+	Code uint32 `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
+}
+
+func (x *ShellExitResponse) Reset() {
+	*x = ShellExitResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_agent_proto_msgTypes[13]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ShellExitResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ShellExitResponse) ProtoMessage() {}
+
+func (x *ShellExitResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[13]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ShellExitResponse.ProtoReflect.Descriptor instead.
+func (*ShellExitResponse) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ShellExitResponse) GetCode() uint32 {
+	if x != nil {
+		return x.Code
+	}
+	return 0
+}
+
 var File_agent_proto protoreflect.FileDescriptor
 
 var file_agent_proto_rawDesc = []byte{
@@ -568,27 +1172,83 @@ var file_agent_proto_rawDesc = []byte{
 	0x01, 0x28, 0x05, 0x52, 0x0a, 0x74, 0x6f, 0x75, 0x63, 0x68, 0x4d, 0x61, 0x6a, 0x6f, 0x72, 0x12,
 	0x1f, 0x0a, 0x0b, 0x74, 0x6f, 0x75, 0x63, 0x68, 0x5f, 0x6d, 0x69, 0x6e, 0x6f, 0x72, 0x18, 0x06,
 	0x20, 0x01, 0x28, 0x05, 0x52, 0x0a, 0x74, 0x6f, 0x75, 0x63, 0x68, 0x4d, 0x69, 0x6e, 0x6f, 0x72,
-	0x32, 0xb4, 0x02, 0x0a, 0x0f, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x43, 0x6f, 0x6e, 0x74, 0x72, 0x6f,
-	0x6c, 0x6c, 0x65, 0x72, 0x12, 0x34, 0x0a, 0x0b, 0x73, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x53, 0x74,
-	0x61, 0x74, 0x65, 0x12, 0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x1a, 0x0b, 0x2e, 0x41, 0x67,
-	0x65, 0x6e, 0x74, 0x53, 0x74, 0x61, 0x74, 0x65, 0x30, 0x01, 0x12, 0x3e, 0x0a, 0x0d, 0x73, 0x74,
-	0x61, 0x72, 0x74, 0x45, 0x6d, 0x75, 0x6c, 0x61, 0x74, 0x6f, 0x72, 0x12, 0x15, 0x2e, 0x53, 0x74,
-	0x61, 0x72, 0x74, 0x45, 0x6d, 0x75, 0x6c, 0x61, 0x74, 0x6f, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65,
-	0x73, 0x74, 0x1a, 0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x12, 0x39, 0x0a, 0x0d, 0x73, 0x74,
-	0x72, 0x65, 0x61, 0x6d, 0x44, 0x69, 0x73, 0x70, 0x6c, 0x61, 0x79, 0x12, 0x15, 0x2e, 0x53, 0x74,
-	0x72, 0x65, 0x61, 0x6d, 0x44, 0x69, 0x73, 0x70, 0x6c, 0x61, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65,
-	0x73, 0x74, 0x1a, 0x0d, 0x2e, 0x44, 0x69, 0x73, 0x70, 0x6c, 0x61, 0x79, 0x46, 0x72, 0x61, 0x6d,
-	0x65, 0x22, 0x00, 0x30, 0x01, 0x12, 0x3c, 0x0a, 0x0e, 0x73, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x53,
-	0x79, 0x73, 0x53, 0x68, 0x65, 0x6c, 0x6c, 0x12, 0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65,
-	0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x1a,
-	0x0e, 0x2e, 0x53, 0x79, 0x73, 0x53, 0x68, 0x65, 0x6c, 0x6c, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x22,
-	0x00, 0x30, 0x01, 0x12, 0x32, 0x0a, 0x09, 0x73, 0x65, 0x6e, 0x64, 0x49, 0x6e, 0x70, 0x75, 0x74,
-	0x12, 0x0b, 0x2e, 0x54, 0x6f, 0x75, 0x63, 0x68, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x1a, 0x16, 0x2e,
-	0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e,
-	0x45, 0x6d, 0x70, 0x74, 0x79, 0x22, 0x00, 0x42, 0x0c, 0x5a, 0x0a, 0x2e, 0x2f, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x22, 0xa0, 0x01, 0x0a, 0x0c, 0x53, 0x68, 0x65, 0x6c, 0x6c, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x12, 0x2a, 0x0a, 0x05, 0x73, 0x74, 0x61, 0x72, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b,
+	0x32, 0x12, 0x2e, 0x53, 0x68, 0x65, 0x6c, 0x6c, 0x53, 0x74, 0x61, 0x72, 0x74, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x48, 0x00, 0x52, 0x05, 0x73, 0x74, 0x61, 0x72, 0x74, 0x12, 0x2a, 0x0a,
+	0x05, 0x73, 0x74, 0x64, 0x69, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x53,
+	0x68, 0x65, 0x6c, 0x6c, 0x53, 0x74, 0x64, 0x49, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x48, 0x00, 0x52, 0x05, 0x73, 0x74, 0x64, 0x69, 0x6e, 0x12, 0x2d, 0x0a, 0x06, 0x72, 0x65, 0x73,
+	0x69, 0x7a, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x13, 0x2e, 0x53, 0x68, 0x65, 0x6c,
+	0x6c, 0x52, 0x65, 0x73, 0x69, 0x7a, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x48, 0x00,
+	0x52, 0x06, 0x72, 0x65, 0x73, 0x69, 0x7a, 0x65, 0x42, 0x09, 0x0a, 0x07, 0x6d, 0x65, 0x73, 0x73,
+	0x61, 0x67, 0x65, 0x22, 0xca, 0x01, 0x0a, 0x11, 0x53, 0x68, 0x65, 0x6c, 0x6c, 0x53, 0x74, 0x61,
+	0x72, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x3b, 0x0a, 0x0a, 0x73, 0x68, 0x65,
+	0x6c, 0x6c, 0x5f, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x1c, 0x2e,
+	0x53, 0x68, 0x65, 0x6c, 0x6c, 0x53, 0x74, 0x61, 0x72, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x2e, 0x53, 0x68, 0x65, 0x6c, 0x6c, 0x54, 0x79, 0x70, 0x65, 0x52, 0x09, 0x73, 0x68, 0x65,
+	0x6c, 0x6c, 0x54, 0x79, 0x70, 0x65, 0x12, 0x1d, 0x0a, 0x07, 0x63, 0x6f, 0x6d, 0x6d, 0x61, 0x6e,
+	0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x48, 0x00, 0x52, 0x07, 0x63, 0x6f, 0x6d, 0x6d, 0x61,
+	0x6e, 0x64, 0x88, 0x01, 0x01, 0x12, 0x20, 0x0a, 0x09, 0x74, 0x65, 0x72, 0x6d, 0x5f, 0x74, 0x79,
+	0x70, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x48, 0x01, 0x52, 0x08, 0x74, 0x65, 0x72, 0x6d,
+	0x54, 0x79, 0x70, 0x65, 0x88, 0x01, 0x01, 0x22, 0x1d, 0x0a, 0x09, 0x53, 0x68, 0x65, 0x6c, 0x6c,
+	0x54, 0x79, 0x70, 0x65, 0x12, 0x07, 0x0a, 0x03, 0x52, 0x41, 0x57, 0x10, 0x00, 0x12, 0x07, 0x0a,
+	0x03, 0x50, 0x54, 0x59, 0x10, 0x01, 0x42, 0x0a, 0x0a, 0x08, 0x5f, 0x63, 0x6f, 0x6d, 0x6d, 0x61,
+	0x6e, 0x64, 0x42, 0x0c, 0x0a, 0x0a, 0x5f, 0x74, 0x65, 0x72, 0x6d, 0x5f, 0x74, 0x79, 0x70, 0x65,
+	0x22, 0x3d, 0x0a, 0x11, 0x53, 0x68, 0x65, 0x6c, 0x6c, 0x53, 0x74, 0x64, 0x49, 0x6e, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x61, 0x74, 0x61, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x0c, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x12, 0x14, 0x0a, 0x05, 0x63, 0x6c, 0x6f,
+	0x73, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x08, 0x52, 0x05, 0x63, 0x6c, 0x6f, 0x73, 0x65, 0x22,
+	0x6a, 0x0a, 0x12, 0x53, 0x68, 0x65, 0x6c, 0x6c, 0x52, 0x65, 0x73, 0x69, 0x7a, 0x65, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x72, 0x6f, 0x77, 0x73, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x0d, 0x52, 0x04, 0x72, 0x6f, 0x77, 0x73, 0x12, 0x12, 0x0a, 0x04, 0x63, 0x6f, 0x6c,
+	0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x04, 0x63, 0x6f, 0x6c, 0x73, 0x12, 0x14, 0x0a,
+	0x05, 0x77, 0x69, 0x64, 0x74, 0x68, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x05, 0x77, 0x69,
+	0x64, 0x74, 0x68, 0x12, 0x16, 0x0a, 0x06, 0x68, 0x65, 0x69, 0x67, 0x68, 0x74, 0x18, 0x04, 0x20,
+	0x01, 0x28, 0x0d, 0x52, 0x06, 0x68, 0x65, 0x69, 0x67, 0x68, 0x74, 0x22, 0x74, 0x0a, 0x0d, 0x53,
+	0x68, 0x65, 0x6c, 0x6c, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x2e, 0x0a, 0x06,
+	0x6f, 0x75, 0x74, 0x70, 0x75, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x53,
+	0x68, 0x65, 0x6c, 0x6c, 0x4f, 0x75, 0x74, 0x70, 0x75, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
+	0x73, 0x65, 0x48, 0x00, 0x52, 0x06, 0x6f, 0x75, 0x74, 0x70, 0x75, 0x74, 0x12, 0x28, 0x0a, 0x04,
+	0x65, 0x78, 0x69, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x53, 0x68, 0x65,
+	0x6c, 0x6c, 0x45, 0x78, 0x69, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x48, 0x00,
+	0x52, 0x04, 0x65, 0x78, 0x69, 0x74, 0x42, 0x09, 0x0a, 0x07, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67,
+	0x65, 0x22, 0x94, 0x01, 0x0a, 0x13, 0x53, 0x68, 0x65, 0x6c, 0x6c, 0x4f, 0x75, 0x74, 0x70, 0x75,
+	0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x41, 0x0a, 0x07, 0x63, 0x68, 0x61,
+	0x6e, 0x6e, 0x65, 0x6c, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x27, 0x2e, 0x53, 0x68, 0x65,
+	0x6c, 0x6c, 0x4f, 0x75, 0x74, 0x70, 0x75, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
+	0x2e, 0x53, 0x68, 0x65, 0x6c, 0x6c, 0x4f, 0x75, 0x74, 0x70, 0x75, 0x74, 0x43, 0x68, 0x61, 0x6e,
+	0x6e, 0x65, 0x6c, 0x52, 0x07, 0x63, 0x68, 0x61, 0x6e, 0x6e, 0x65, 0x6c, 0x12, 0x12, 0x0a, 0x04,
+	0x64, 0x61, 0x74, 0x61, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61,
+	0x22, 0x26, 0x0a, 0x12, 0x53, 0x68, 0x65, 0x6c, 0x6c, 0x4f, 0x75, 0x74, 0x70, 0x75, 0x74, 0x43,
+	0x68, 0x61, 0x6e, 0x6e, 0x65, 0x6c, 0x12, 0x07, 0x0a, 0x03, 0x4f, 0x55, 0x54, 0x10, 0x00, 0x12,
+	0x07, 0x0a, 0x03, 0x45, 0x52, 0x52, 0x10, 0x01, 0x22, 0x27, 0x0a, 0x11, 0x53, 0x68, 0x65, 0x6c,
+	0x6c, 0x45, 0x78, 0x69, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x12, 0x0a,
+	0x04, 0x63, 0x6f, 0x64, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x04, 0x63, 0x6f, 0x64,
+	0x65, 0x32, 0xde, 0x02, 0x0a, 0x0f, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x43, 0x6f, 0x6e, 0x74, 0x72,
+	0x6f, 0x6c, 0x6c, 0x65, 0x72, 0x12, 0x34, 0x0a, 0x0b, 0x73, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x53,
+	0x74, 0x61, 0x74, 0x65, 0x12, 0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x1a, 0x0b, 0x2e, 0x41,
+	0x67, 0x65, 0x6e, 0x74, 0x53, 0x74, 0x61, 0x74, 0x65, 0x30, 0x01, 0x12, 0x3e, 0x0a, 0x0d, 0x73,
+	0x74, 0x61, 0x72, 0x74, 0x45, 0x6d, 0x75, 0x6c, 0x61, 0x74, 0x6f, 0x72, 0x12, 0x15, 0x2e, 0x53,
+	0x74, 0x61, 0x72, 0x74, 0x45, 0x6d, 0x75, 0x6c, 0x61, 0x74, 0x6f, 0x72, 0x52, 0x65, 0x71, 0x75,
+	0x65, 0x73, 0x74, 0x1a, 0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f,
+	0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x12, 0x37, 0x0a, 0x0d, 0x73,
+	0x74, 0x72, 0x65, 0x61, 0x6d, 0x44, 0x69, 0x73, 0x70, 0x6c, 0x61, 0x79, 0x12, 0x15, 0x2e, 0x53,
+	0x74, 0x72, 0x65, 0x61, 0x6d, 0x44, 0x69, 0x73, 0x70, 0x6c, 0x61, 0x79, 0x52, 0x65, 0x71, 0x75,
+	0x65, 0x73, 0x74, 0x1a, 0x0d, 0x2e, 0x44, 0x69, 0x73, 0x70, 0x6c, 0x61, 0x79, 0x46, 0x72, 0x61,
+	0x6d, 0x65, 0x30, 0x01, 0x12, 0x3a, 0x0a, 0x0e, 0x73, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x53, 0x79,
+	0x73, 0x53, 0x68, 0x65, 0x6c, 0x6c, 0x12, 0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x1a, 0x0e,
+	0x2e, 0x53, 0x79, 0x73, 0x53, 0x68, 0x65, 0x6c, 0x6c, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x30, 0x01,
+	0x12, 0x30, 0x0a, 0x09, 0x73, 0x65, 0x6e, 0x64, 0x49, 0x6e, 0x70, 0x75, 0x74, 0x12, 0x0b, 0x2e,
+	0x54, 0x6f, 0x75, 0x63, 0x68, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x1a, 0x16, 0x2e, 0x67, 0x6f, 0x6f,
+	0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70,
+	0x74, 0x79, 0x12, 0x2e, 0x0a, 0x09, 0x6f, 0x70, 0x65, 0x6e, 0x53, 0x68, 0x65, 0x6c, 0x6c, 0x12,
+	0x0d, 0x2e, 0x53, 0x68, 0x65, 0x6c, 0x6c, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x0e,
+	0x2e, 0x53, 0x68, 0x65, 0x6c, 0x6c, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x28, 0x01,
+	0x30, 0x01, 0x42, 0x0c, 0x5a, 0x0a, 0x2e, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c,
+	0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -603,37 +1263,55 @@ func file_agent_proto_rawDescGZIP() []byte {
 	return file_agent_proto_rawDescData
 }
 
-var file_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_agent_proto_goTypes = []interface{}{
-	(AgentState_EmulatorState)(0), // 0: AgentState.EmulatorState
-	(*AgentState)(nil),            // 1: AgentState
-	(*StartEmulatorRequest)(nil),  // 2: StartEmulatorRequest
-	(*StreamDisplayRequest)(nil),  // 3: StreamDisplayRequest
-	(*DisplayFrame)(nil),          // 4: DisplayFrame
-	(*SysShellEntry)(nil),         // 5: SysShellEntry
-	(*TouchEvent)(nil),            // 6: TouchEvent
-	(*Touch)(nil),                 // 7: Touch
-	(*empty.Empty)(nil),           // 8: google.protobuf.Empty
+	(AgentState_EmulatorState)(0),               // 0: AgentState.EmulatorState
+	(ShellStartRequest_ShellType)(0),            // 1: ShellStartRequest.ShellType
+	(ShellOutputResponse_ShellOutputChannel)(0), // 2: ShellOutputResponse.ShellOutputChannel
+	(*AgentState)(nil),                          // 3: AgentState
+	(*StartEmulatorRequest)(nil),                // 4: StartEmulatorRequest
+	(*StreamDisplayRequest)(nil),                // 5: StreamDisplayRequest
+	(*DisplayFrame)(nil),                        // 6: DisplayFrame
+	(*SysShellEntry)(nil),                       // 7: SysShellEntry
+	(*TouchEvent)(nil),                          // 8: TouchEvent
+	(*Touch)(nil),                               // 9: Touch
+	(*ShellRequest)(nil),                        // 10: ShellRequest
+	(*ShellStartRequest)(nil),                   // 11: ShellStartRequest
+	(*ShellStdInRequest)(nil),                   // 12: ShellStdInRequest
+	(*ShellResizeRequest)(nil),                  // 13: ShellResizeRequest
+	(*ShellResponse)(nil),                       // 14: ShellResponse
+	(*ShellOutputResponse)(nil),                 // 15: ShellOutputResponse
+	(*ShellExitResponse)(nil),                   // 16: ShellExitResponse
+	(*empty.Empty)(nil),                         // 17: google.protobuf.Empty
 }
 var file_agent_proto_depIdxs = []int32{
-	0, // 0: AgentState.emulator_state:type_name -> AgentState.EmulatorState
-	7, // 1: TouchEvent.touches:type_name -> Touch
-	8, // 2: AgentController.streamState:input_type -> google.protobuf.Empty
-	2, // 3: AgentController.startEmulator:input_type -> StartEmulatorRequest
-	3, // 4: AgentController.streamDisplay:input_type -> StreamDisplayRequest
-	8, // 5: AgentController.streamSysShell:input_type -> google.protobuf.Empty
-	6, // 6: AgentController.sendInput:input_type -> TouchEvent
-	1, // 7: AgentController.streamState:output_type -> AgentState
-	8, // 8: AgentController.startEmulator:output_type -> google.protobuf.Empty
-	4, // 9: AgentController.streamDisplay:output_type -> DisplayFrame
-	5, // 10: AgentController.streamSysShell:output_type -> SysShellEntry
-	8, // 11: AgentController.sendInput:output_type -> google.protobuf.Empty
-	7, // [7:12] is the sub-list for method output_type
-	2, // [2:7] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	0,  // 0: AgentState.emulator_state:type_name -> AgentState.EmulatorState
+	9,  // 1: TouchEvent.touches:type_name -> Touch
+	11, // 2: ShellRequest.start:type_name -> ShellStartRequest
+	12, // 3: ShellRequest.stdin:type_name -> ShellStdInRequest
+	13, // 4: ShellRequest.resize:type_name -> ShellResizeRequest
+	1,  // 5: ShellStartRequest.shell_type:type_name -> ShellStartRequest.ShellType
+	15, // 6: ShellResponse.output:type_name -> ShellOutputResponse
+	16, // 7: ShellResponse.exit:type_name -> ShellExitResponse
+	2,  // 8: ShellOutputResponse.channel:type_name -> ShellOutputResponse.ShellOutputChannel
+	17, // 9: AgentController.streamState:input_type -> google.protobuf.Empty
+	4,  // 10: AgentController.startEmulator:input_type -> StartEmulatorRequest
+	5,  // 11: AgentController.streamDisplay:input_type -> StreamDisplayRequest
+	17, // 12: AgentController.streamSysShell:input_type -> google.protobuf.Empty
+	8,  // 13: AgentController.sendInput:input_type -> TouchEvent
+	10, // 14: AgentController.openShell:input_type -> ShellRequest
+	3,  // 15: AgentController.streamState:output_type -> AgentState
+	17, // 16: AgentController.startEmulator:output_type -> google.protobuf.Empty
+	6,  // 17: AgentController.streamDisplay:output_type -> DisplayFrame
+	7,  // 18: AgentController.streamSysShell:output_type -> SysShellEntry
+	17, // 19: AgentController.sendInput:output_type -> google.protobuf.Empty
+	14, // 20: AgentController.openShell:output_type -> ShellResponse
+	15, // [15:21] is the sub-list for method output_type
+	9,  // [9:15] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_agent_proto_init() }
@@ -726,14 +1404,108 @@ func file_agent_proto_init() {
 				return nil
 			}
 		}
+		file_agent_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ShellRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_agent_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ShellStartRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_agent_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ShellStdInRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_agent_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ShellResizeRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_agent_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ShellResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_agent_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ShellOutputResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_agent_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ShellExitResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+	}
+	file_agent_proto_msgTypes[7].OneofWrappers = []interface{}{
+		(*ShellRequest_Start)(nil),
+		(*ShellRequest_Stdin)(nil),
+		(*ShellRequest_Resize)(nil),
+	}
+	file_agent_proto_msgTypes[8].OneofWrappers = []interface{}{}
+	file_agent_proto_msgTypes[11].OneofWrappers = []interface{}{
+		(*ShellResponse_Output)(nil),
+		(*ShellResponse_Exit)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_agent_proto_rawDesc,
-			NumEnums:      1,
-			NumMessages:   7,
+			NumEnums:      3,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
