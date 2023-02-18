@@ -25,7 +25,8 @@ service AgentController {
   // no messages are missed. The stream will is persistent between emulator restarts.
   rpc streamSysLog(google.protobuf.Empty) returns (stream SysLogEntry);
 
-  rpc sendInput(TouchEvent) returns (google.protobuf.Empty);
+  // Forward an input event to the emulator.
+  rpc sendInput(InputRequest) returns (google.protobuf.Empty);
 
   // Opens an ADB shell to the emulator.
   // Requires that the emulator has reached the "running" state, otherwise an error will be returned.
@@ -112,17 +113,24 @@ message SysLogEntry {
   string line = 1;
 }
 
-message TouchEvent {
-  repeated Touch touches = 1;
+// A input event
+message InputRequest {
+  oneof event {
+    TouchEvent touch = 1;
+  }
 }
 
-message Touch {
-  int32 identifier = 1;
+// A touch event
+message TouchEvent {
+  // A unique id to represent a pointer. Ids can be reused. Ids are shared amongst all connections.
+  uint32 identifier = 1;
 
-  int32 x = 2;
-  int32 y = 3;
+  // Coords
+  uint32 x = 2;
+  uint32 y = 3;
 
-  int32 pressure = 4;
+  // Pointer device. A pressure of 0 must be sent to signal the event of the touch.
+  uint32 pressure = 4;
   int32 touch_major = 5;
   int32 touch_minor = 6;
 }

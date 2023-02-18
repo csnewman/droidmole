@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"github.com/csnewman/droidmole/agent/client/display"
+	"github.com/csnewman/droidmole/agent/client/input"
 	"github.com/csnewman/droidmole/agent/client/shell"
 	"github.com/csnewman/droidmole/agent/client/state"
 	"github.com/csnewman/droidmole/agent/client/syslog"
@@ -91,6 +92,13 @@ func (c *Client) StreamDisplay(ctx context.Context, request display.Request) (*d
 // messages are missed. The stream will is persistent between emulator restarts.
 func (c *Client) StreamSysLog(ctx context.Context) (*syslog.Stream, error) {
 	return syslog.Open(ctx, c.client)
+}
+
+// SendInput forward an input event to the emulator.
+func (c *Client) SendInput(ctx context.Context, event input.Event) error {
+	request := event.ToRequest()
+	_, err := c.client.SendInput(ctx, &request)
+	return err
 }
 
 // OpenShell opens an ADB shell to the emulator.

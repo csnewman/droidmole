@@ -65,23 +65,19 @@ func (s *agentControllerServer) StartEmulator(ctx context.Context, request *prot
 	return &empty.Empty{}, nil
 }
 
-func (s *agentControllerServer) SendInput(ctx context.Context, event *protocol.TouchEvent) (*empty.Empty, error) {
+func (s *agentControllerServer) SendInput(_ context.Context, request *protocol.InputRequest) (*empty.Empty, error) {
 	s.server.mu.Lock()
+	defer s.server.mu.Unlock()
 
-	var respError error
+	if request == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "no request given")
+	}
+
 	if s.server.state == StateRunning || s.server.state == StateStarting {
-		respError = s.server.emu.ProcessInput(event)
-	} else {
-		respError = status.Errorf(codes.FailedPrecondition, "emulator not running")
+		return &empty.Empty{}, s.server.emu.ProcessInput(*request)
 	}
 
-	s.server.mu.Unlock()
-
-	if respError != nil {
-		return nil, respError
-	}
-
-	return &empty.Empty{}, nil
+	return nil, status.Errorf(codes.FailedPrecondition, "emulator not running")
 }
 
 func (s *agentControllerServer) StreamSysLog(_ *empty.Empty, server protocol.AgentController_StreamSysLogServer) error {

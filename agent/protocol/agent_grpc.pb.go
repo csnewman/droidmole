@@ -38,7 +38,8 @@ type AgentControllerClient interface {
 	// Previous messages are not returned. This stream can and should be started before the emulator is started to ensure
 	// no messages are missed. The stream will is persistent between emulator restarts.
 	StreamSysLog(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (AgentController_StreamSysLogClient, error)
-	SendInput(ctx context.Context, in *TouchEvent, opts ...grpc.CallOption) (*empty.Empty, error)
+	// Forward an input event to the emulator.
+	SendInput(ctx context.Context, in *InputRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	// Opens an ADB shell to the emulator.
 	// Requires that the emulator has reached the "running" state, otherwise an error will be returned.
 	// The request stream must start with a single ShellStartRequest message.
@@ -158,7 +159,7 @@ func (x *agentControllerStreamSysLogClient) Recv() (*SysLogEntry, error) {
 	return m, nil
 }
 
-func (c *agentControllerClient) SendInput(ctx context.Context, in *TouchEvent, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (c *agentControllerClient) SendInput(ctx context.Context, in *InputRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
 	out := new(empty.Empty)
 	err := c.cc.Invoke(ctx, "/AgentController/sendInput", in, out, opts...)
 	if err != nil {
@@ -217,7 +218,8 @@ type AgentControllerServer interface {
 	// Previous messages are not returned. This stream can and should be started before the emulator is started to ensure
 	// no messages are missed. The stream will is persistent between emulator restarts.
 	StreamSysLog(*empty.Empty, AgentController_StreamSysLogServer) error
-	SendInput(context.Context, *TouchEvent) (*empty.Empty, error)
+	// Forward an input event to the emulator.
+	SendInput(context.Context, *InputRequest) (*empty.Empty, error)
 	// Opens an ADB shell to the emulator.
 	// Requires that the emulator has reached the "running" state, otherwise an error will be returned.
 	// The request stream must start with a single ShellStartRequest message.
@@ -241,7 +243,7 @@ func (UnimplementedAgentControllerServer) StreamDisplay(*StreamDisplayRequest, A
 func (UnimplementedAgentControllerServer) StreamSysLog(*empty.Empty, AgentController_StreamSysLogServer) error {
 	return status.Errorf(codes.Unimplemented, "method StreamSysLog not implemented")
 }
-func (UnimplementedAgentControllerServer) SendInput(context.Context, *TouchEvent) (*empty.Empty, error) {
+func (UnimplementedAgentControllerServer) SendInput(context.Context, *InputRequest) (*empty.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendInput not implemented")
 }
 func (UnimplementedAgentControllerServer) OpenShell(AgentController_OpenShellServer) error {
@@ -342,7 +344,7 @@ func (x *agentControllerStreamSysLogServer) Send(m *SysLogEntry) error {
 }
 
 func _AgentController_SendInput_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TouchEvent)
+	in := new(InputRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -354,7 +356,7 @@ func _AgentController_SendInput_Handler(srv interface{}, ctx context.Context, de
 		FullMethod: "/AgentController/sendInput",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentControllerServer).SendInput(ctx, req.(*TouchEvent))
+		return srv.(AgentControllerServer).SendInput(ctx, req.(*InputRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

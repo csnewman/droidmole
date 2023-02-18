@@ -1,13 +1,14 @@
 package emulator
 
 import (
-	"errors"
 	"fmt"
 	"github.com/csnewman/droidmole/agent/protocol"
 	"github.com/csnewman/droidmole/agent/server/adb"
 	"github.com/csnewman/droidmole/agent/server/emulator/controller"
 	emuproto "github.com/csnewman/droidmole/agent/server/emulator/controller/protocol"
 	"github.com/csnewman/droidmole/agent/server/syslog"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"log"
 	"os"
 	"os/exec"
@@ -165,31 +166,31 @@ func (e *Emulator) processDisplay() {
 	}
 }
 
-func (e *Emulator) ProcessInput(event *protocol.TouchEvent) error {
+func (e *Emulator) ProcessInput(request protocol.InputRequest) error {
 	e.mu.Lock()
-	controller := e.controller
-	e.mu.Unlock()
+	defer e.mu.Unlock()
 
-	if controller == nil {
-		return errors.New("emulator not ready")
+	if e.controller == nil {
+		return status.Errorf(codes.FailedPrecondition, "emulator not ready")
 	}
 
-	touches := make([]*emuproto.Touch, 0)
-
-	for _, e := range event.Touches {
-		touches = append(touches, &emuproto.Touch{
-			X:          e.X,
-			Y:          e.Y,
-			Identifier: e.Identifier,
-			Pressure:   e.Pressure,
-			TouchMajor: e.TouchMajor,
-			TouchMinor: e.TouchMinor,
-			Expiration: 1,
+	switch event := request.Event.(type) {
+	case *protocol.InputRequest_Touch:
+		return e.controller.SendTouch(emuproto.TouchEvent{
+			Touches: []*emuproto.Touch{
+				{
+					X:          int32(event.Touch.X),
+					Y:          int32(event.Touch.Y),
+					Identifier: int32(event.Touch.Identifier),
+					Pressure:   int32(event.Touch.Pressure),
+					TouchMajor: event.Touch.TouchMajor,
+					TouchMinor: event.Touch.TouchMinor,
+					Expiration: emuproto.Touch_NEVER_EXPIRE,
+				},
+			},
+			Display: 0,
 		})
+	default:
+		return status.Errorf(codes.InvalidArgument, "unknown request")
 	}
-
-	return controller.SendTouch(emuproto.TouchEvent{
-		Touches: touches,
-		Display: 0,
-	})
 }
