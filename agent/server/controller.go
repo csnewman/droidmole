@@ -84,13 +84,13 @@ func (s *agentControllerServer) SendInput(ctx context.Context, event *protocol.T
 	return &empty.Empty{}, nil
 }
 
-func (s *agentControllerServer) StreamSysShell(_ *empty.Empty, server protocol.AgentController_StreamSysShellServer) error {
-	listener := s.server.shell.Listen()
+func (s *agentControllerServer) StreamSysLog(_ *empty.Empty, server protocol.AgentController_StreamSysLogServer) error {
+	listener := s.server.syslog.Listen()
 
 	for {
 		line := listener.Recv()
 
-		err := server.Send(&protocol.SysShellEntry{
+		err := server.Send(&protocol.SysLogEntry{
 			Line: line,
 		})
 		if err != nil {

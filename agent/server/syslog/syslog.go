@@ -1,4 +1,4 @@
-package sysshell
+package syslog
 
 import (
 	"bufio"
@@ -11,13 +11,13 @@ import (
 
 const SockAddr = "/tmp/sys-shell.sock"
 
-type SysShell struct {
+type SysLog struct {
 	listener net.Listener
 	clients  []*Listener
 	mu       sync.Mutex
 }
 
-func Start() (*SysShell, error) {
+func Start() (*SysLog, error) {
 	err := os.RemoveAll(SockAddr)
 	if err != nil {
 		return nil, err
@@ -28,7 +28,7 @@ func Start() (*SysShell, error) {
 		return nil, err
 	}
 
-	s := &SysShell{
+	s := &SysLog{
 		listener: l,
 		clients:  []*Listener{},
 	}
@@ -38,19 +38,19 @@ func Start() (*SysShell, error) {
 	return s, nil
 }
 
-func (s *SysShell) Close() {
+func (s *SysLog) Close() {
 	s.listener.Close()
 }
 
-func (s *SysShell) processor() {
+func (s *SysLog) processor() {
 	for {
 		conn, err := s.listener.Accept()
 		if err != nil {
-			log.Println("sysshell accept error:", err)
+			log.Println("syslog accept error:", err)
 			return
 		}
 
-		log.Println("sysshell connection accepted")
+		log.Println("syslog connection accepted")
 
 		scanner := bufio.NewScanner(conn)
 		for scanner.Scan() {
@@ -70,7 +70,7 @@ func (s *SysShell) processor() {
 		}
 
 		if err := scanner.Err(); err != nil {
-			log.Println("sysshell error:", err)
+			log.Println("syslog error:", err)
 		}
 	}
 }
@@ -80,7 +80,7 @@ type Listener struct {
 	closed  atomic.Bool
 }
 
-func (s *SysShell) Listen() *Listener {
+func (s *SysLog) Listen() *Listener {
 	channel := make(chan string, 100)
 	listener := &Listener{
 		channel: channel,
@@ -101,7 +101,7 @@ func (l *Listener) send(msg string) bool {
 	select {
 	case l.channel <- msg:
 	default:
-		log.Println("sysshell listener full - dropping message")
+		log.Println("syslog listener full - dropping message")
 	}
 
 	return true

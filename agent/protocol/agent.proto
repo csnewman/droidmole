@@ -20,7 +20,10 @@ service AgentController {
   // emulator restarts.
   rpc streamDisplay(StreamDisplayRequest) returns (stream DisplayFrame);
 
-  rpc streamSysShell(google.protobuf.Empty) returns (stream SysShellEntry);
+  // Streams the system log (kernel messages).
+  // Previous messages are not returned. This stream can and should be started before the emulator is started to ensure
+  // no messages are missed. The stream will is persistent between emulator restarts.
+  rpc streamSysLog(google.protobuf.Empty) returns (stream SysLogEntry);
 
   rpc sendInput(TouchEvent) returns (google.protobuf.Empty);
 
@@ -103,7 +106,9 @@ message DisplayFrame {
   bytes data = 4;
 }
 
-message SysShellEntry {
+// A single line in the syslog.
+message SysLogEntry {
+  // The raw line.
   string line = 1;
 }
 

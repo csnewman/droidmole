@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/csnewman/droidmole/agent/client/display"
 	"github.com/csnewman/droidmole/agent/client/state"
+	"github.com/csnewman/droidmole/agent/client/syslog"
 	"github.com/csnewman/droidmole/agent/protocol"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -82,6 +83,13 @@ func (c *Client) StartEmulator(ctx context.Context, request StartEmulatorRequest
 // restarts.
 func (c *Client) StreamDisplay(ctx context.Context, request display.Request) (*display.Stream, error) {
 	return display.Open(ctx, c.client, request)
+}
+
+// StreamSysLog streams the system log (kernel messages).
+// Previous messages are not returned. This stream can and should be started before the emulator is started to ensure no
+// messages are missed. The stream will is persistent between emulator restarts.
+func (c *Client) StreamSysLog(ctx context.Context) (*syslog.Stream, error) {
+	return syslog.Open(ctx, c.client)
 }
 
 func (c *Client) Close() error {

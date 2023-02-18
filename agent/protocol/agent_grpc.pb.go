@@ -34,7 +34,10 @@ type AgentControllerClient interface {
 	// started before the emulator is started to ensure no frames are missed. The stream will is persistent between
 	// emulator restarts.
 	StreamDisplay(ctx context.Context, in *StreamDisplayRequest, opts ...grpc.CallOption) (AgentController_StreamDisplayClient, error)
-	StreamSysShell(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (AgentController_StreamSysShellClient, error)
+	// Streams the system log (kernel messages).
+	// Previous messages are not returned. This stream can and should be started before the emulator is started to ensure
+	// no messages are missed. The stream will is persistent between emulator restarts.
+	StreamSysLog(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (AgentController_StreamSysLogClient, error)
 	SendInput(ctx context.Context, in *TouchEvent, opts ...grpc.CallOption) (*empty.Empty, error)
 	// Opens an ADB shell to the emulator.
 	// Requires that the emulator has reached the "running" state, otherwise an error will be returned.
@@ -123,12 +126,12 @@ func (x *agentControllerStreamDisplayClient) Recv() (*DisplayFrame, error) {
 	return m, nil
 }
 
-func (c *agentControllerClient) StreamSysShell(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (AgentController_StreamSysShellClient, error) {
-	stream, err := c.cc.NewStream(ctx, &AgentController_ServiceDesc.Streams[2], "/AgentController/streamSysShell", opts...)
+func (c *agentControllerClient) StreamSysLog(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (AgentController_StreamSysLogClient, error) {
+	stream, err := c.cc.NewStream(ctx, &AgentController_ServiceDesc.Streams[2], "/AgentController/streamSysLog", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &agentControllerStreamSysShellClient{stream}
+	x := &agentControllerStreamSysLogClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -138,17 +141,17 @@ func (c *agentControllerClient) StreamSysShell(ctx context.Context, in *empty.Em
 	return x, nil
 }
 
-type AgentController_StreamSysShellClient interface {
-	Recv() (*SysShellEntry, error)
+type AgentController_StreamSysLogClient interface {
+	Recv() (*SysLogEntry, error)
 	grpc.ClientStream
 }
 
-type agentControllerStreamSysShellClient struct {
+type agentControllerStreamSysLogClient struct {
 	grpc.ClientStream
 }
 
-func (x *agentControllerStreamSysShellClient) Recv() (*SysShellEntry, error) {
-	m := new(SysShellEntry)
+func (x *agentControllerStreamSysLogClient) Recv() (*SysLogEntry, error) {
+	m := new(SysLogEntry)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -210,7 +213,10 @@ type AgentControllerServer interface {
 	// started before the emulator is started to ensure no frames are missed. The stream will is persistent between
 	// emulator restarts.
 	StreamDisplay(*StreamDisplayRequest, AgentController_StreamDisplayServer) error
-	StreamSysShell(*empty.Empty, AgentController_StreamSysShellServer) error
+	// Streams the system log (kernel messages).
+	// Previous messages are not returned. This stream can and should be started before the emulator is started to ensure
+	// no messages are missed. The stream will is persistent between emulator restarts.
+	StreamSysLog(*empty.Empty, AgentController_StreamSysLogServer) error
 	SendInput(context.Context, *TouchEvent) (*empty.Empty, error)
 	// Opens an ADB shell to the emulator.
 	// Requires that the emulator has reached the "running" state, otherwise an error will be returned.
@@ -232,8 +238,8 @@ func (UnimplementedAgentControllerServer) StartEmulator(context.Context, *StartE
 func (UnimplementedAgentControllerServer) StreamDisplay(*StreamDisplayRequest, AgentController_StreamDisplayServer) error {
 	return status.Errorf(codes.Unimplemented, "method StreamDisplay not implemented")
 }
-func (UnimplementedAgentControllerServer) StreamSysShell(*empty.Empty, AgentController_StreamSysShellServer) error {
-	return status.Errorf(codes.Unimplemented, "method StreamSysShell not implemented")
+func (UnimplementedAgentControllerServer) StreamSysLog(*empty.Empty, AgentController_StreamSysLogServer) error {
+	return status.Errorf(codes.Unimplemented, "method StreamSysLog not implemented")
 }
 func (UnimplementedAgentControllerServer) SendInput(context.Context, *TouchEvent) (*empty.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendInput not implemented")
@@ -314,24 +320,24 @@ func (x *agentControllerStreamDisplayServer) Send(m *DisplayFrame) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _AgentController_StreamSysShell_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _AgentController_StreamSysLog_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(empty.Empty)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(AgentControllerServer).StreamSysShell(m, &agentControllerStreamSysShellServer{stream})
+	return srv.(AgentControllerServer).StreamSysLog(m, &agentControllerStreamSysLogServer{stream})
 }
 
-type AgentController_StreamSysShellServer interface {
-	Send(*SysShellEntry) error
+type AgentController_StreamSysLogServer interface {
+	Send(*SysLogEntry) error
 	grpc.ServerStream
 }
 
-type agentControllerStreamSysShellServer struct {
+type agentControllerStreamSysLogServer struct {
 	grpc.ServerStream
 }
 
-func (x *agentControllerStreamSysShellServer) Send(m *SysShellEntry) error {
+func (x *agentControllerStreamSysLogServer) Send(m *SysLogEntry) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -407,8 +413,8 @@ var AgentController_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 		{
-			StreamName:    "streamSysShell",
-			Handler:       _AgentController_StreamSysShell_Handler,
+			StreamName:    "streamSysLog",
+			Handler:       _AgentController_StreamSysLog_Handler,
 			ServerStreams: true,
 		},
 		{
