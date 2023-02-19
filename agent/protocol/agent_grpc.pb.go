@@ -44,6 +44,19 @@ type AgentControllerClient interface {
 	// Requires that the emulator has reached the "running" state, otherwise an error will be returned.
 	// The request stream must start with a single ShellStartRequest message.
 	OpenShell(ctx context.Context, opts ...grpc.CallOption) (AgentController_OpenShellClient, error)
+	// List all files in a directory.
+	// Requires that the emulator has reached the "running" state, otherwise an error will be returned.
+	ListDirectory(ctx context.Context, in *ListDirectoryRequest, opts ...grpc.CallOption) (*ListDirectoryResponse, error)
+	// Stat a given file.
+	// Requires that the emulator has reached the "running" state, otherwise an error will be returned.
+	StatFile(ctx context.Context, in *StatFileRequest, opts ...grpc.CallOption) (*StatFileResponse, error)
+	// Pull a file from the emulator.
+	// Requires that the emulator has reached the "running" state, otherwise an error will be returned.
+	PullFile(ctx context.Context, in *PullFileRequest, opts ...grpc.CallOption) (AgentController_PullFileClient, error)
+	// Push a file to the emulator.
+	// Requires that the emulator has reached the "running" state, otherwise an error will be returned.
+	// The request stream must start with a single PushFileStartRequest message.
+	PushFile(ctx context.Context, opts ...grpc.CallOption) (AgentController_PushFileClient, error)
 }
 
 type agentControllerClient struct {
@@ -199,6 +212,90 @@ func (x *agentControllerOpenShellClient) Recv() (*ShellResponse, error) {
 	return m, nil
 }
 
+func (c *agentControllerClient) ListDirectory(ctx context.Context, in *ListDirectoryRequest, opts ...grpc.CallOption) (*ListDirectoryResponse, error) {
+	out := new(ListDirectoryResponse)
+	err := c.cc.Invoke(ctx, "/AgentController/listDirectory", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentControllerClient) StatFile(ctx context.Context, in *StatFileRequest, opts ...grpc.CallOption) (*StatFileResponse, error) {
+	out := new(StatFileResponse)
+	err := c.cc.Invoke(ctx, "/AgentController/statFile", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentControllerClient) PullFile(ctx context.Context, in *PullFileRequest, opts ...grpc.CallOption) (AgentController_PullFileClient, error) {
+	stream, err := c.cc.NewStream(ctx, &AgentController_ServiceDesc.Streams[4], "/AgentController/pullFile", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &agentControllerPullFileClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type AgentController_PullFileClient interface {
+	Recv() (*PullFileResponse, error)
+	grpc.ClientStream
+}
+
+type agentControllerPullFileClient struct {
+	grpc.ClientStream
+}
+
+func (x *agentControllerPullFileClient) Recv() (*PullFileResponse, error) {
+	m := new(PullFileResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *agentControllerClient) PushFile(ctx context.Context, opts ...grpc.CallOption) (AgentController_PushFileClient, error) {
+	stream, err := c.cc.NewStream(ctx, &AgentController_ServiceDesc.Streams[5], "/AgentController/pushFile", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &agentControllerPushFileClient{stream}
+	return x, nil
+}
+
+type AgentController_PushFileClient interface {
+	Send(*PushFileRequest) error
+	CloseAndRecv() (*empty.Empty, error)
+	grpc.ClientStream
+}
+
+type agentControllerPushFileClient struct {
+	grpc.ClientStream
+}
+
+func (x *agentControllerPushFileClient) Send(m *PushFileRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *agentControllerPushFileClient) CloseAndRecv() (*empty.Empty, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(empty.Empty)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // AgentControllerServer is the server API for AgentController service.
 // All implementations must embed UnimplementedAgentControllerServer
 // for forward compatibility
@@ -224,6 +321,19 @@ type AgentControllerServer interface {
 	// Requires that the emulator has reached the "running" state, otherwise an error will be returned.
 	// The request stream must start with a single ShellStartRequest message.
 	OpenShell(AgentController_OpenShellServer) error
+	// List all files in a directory.
+	// Requires that the emulator has reached the "running" state, otherwise an error will be returned.
+	ListDirectory(context.Context, *ListDirectoryRequest) (*ListDirectoryResponse, error)
+	// Stat a given file.
+	// Requires that the emulator has reached the "running" state, otherwise an error will be returned.
+	StatFile(context.Context, *StatFileRequest) (*StatFileResponse, error)
+	// Pull a file from the emulator.
+	// Requires that the emulator has reached the "running" state, otherwise an error will be returned.
+	PullFile(*PullFileRequest, AgentController_PullFileServer) error
+	// Push a file to the emulator.
+	// Requires that the emulator has reached the "running" state, otherwise an error will be returned.
+	// The request stream must start with a single PushFileStartRequest message.
+	PushFile(AgentController_PushFileServer) error
 	mustEmbedUnimplementedAgentControllerServer()
 }
 
@@ -248,6 +358,18 @@ func (UnimplementedAgentControllerServer) SendInput(context.Context, *InputReque
 }
 func (UnimplementedAgentControllerServer) OpenShell(AgentController_OpenShellServer) error {
 	return status.Errorf(codes.Unimplemented, "method OpenShell not implemented")
+}
+func (UnimplementedAgentControllerServer) ListDirectory(context.Context, *ListDirectoryRequest) (*ListDirectoryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListDirectory not implemented")
+}
+func (UnimplementedAgentControllerServer) StatFile(context.Context, *StatFileRequest) (*StatFileResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StatFile not implemented")
+}
+func (UnimplementedAgentControllerServer) PullFile(*PullFileRequest, AgentController_PullFileServer) error {
+	return status.Errorf(codes.Unimplemented, "method PullFile not implemented")
+}
+func (UnimplementedAgentControllerServer) PushFile(AgentController_PushFileServer) error {
+	return status.Errorf(codes.Unimplemented, "method PushFile not implemented")
 }
 func (UnimplementedAgentControllerServer) mustEmbedUnimplementedAgentControllerServer() {}
 
@@ -387,6 +509,89 @@ func (x *agentControllerOpenShellServer) Recv() (*ShellRequest, error) {
 	return m, nil
 }
 
+func _AgentController_ListDirectory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListDirectoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentControllerServer).ListDirectory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/AgentController/listDirectory",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentControllerServer).ListDirectory(ctx, req.(*ListDirectoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentController_StatFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StatFileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentControllerServer).StatFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/AgentController/statFile",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentControllerServer).StatFile(ctx, req.(*StatFileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentController_PullFile_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(PullFileRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(AgentControllerServer).PullFile(m, &agentControllerPullFileServer{stream})
+}
+
+type AgentController_PullFileServer interface {
+	Send(*PullFileResponse) error
+	grpc.ServerStream
+}
+
+type agentControllerPullFileServer struct {
+	grpc.ServerStream
+}
+
+func (x *agentControllerPullFileServer) Send(m *PullFileResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _AgentController_PushFile_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(AgentControllerServer).PushFile(&agentControllerPushFileServer{stream})
+}
+
+type AgentController_PushFileServer interface {
+	SendAndClose(*empty.Empty) error
+	Recv() (*PushFileRequest, error)
+	grpc.ServerStream
+}
+
+type agentControllerPushFileServer struct {
+	grpc.ServerStream
+}
+
+func (x *agentControllerPushFileServer) SendAndClose(m *empty.Empty) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *agentControllerPushFileServer) Recv() (*PushFileRequest, error) {
+	m := new(PushFileRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // AgentController_ServiceDesc is the grpc.ServiceDesc for AgentController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -401,6 +606,14 @@ var AgentController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "sendInput",
 			Handler:    _AgentController_SendInput_Handler,
+		},
+		{
+			MethodName: "listDirectory",
+			Handler:    _AgentController_ListDirectory_Handler,
+		},
+		{
+			MethodName: "statFile",
+			Handler:    _AgentController_StatFile_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
@@ -423,6 +636,16 @@ var AgentController_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "openShell",
 			Handler:       _AgentController_OpenShell_Handler,
 			ServerStreams: true,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "pullFile",
+			Handler:       _AgentController_PullFile_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "pushFile",
+			Handler:       _AgentController_PushFile_Handler,
 			ClientStreams: true,
 		},
 	},

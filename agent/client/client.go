@@ -6,6 +6,7 @@ import (
 	"github.com/csnewman/droidmole/agent/client/input"
 	"github.com/csnewman/droidmole/agent/client/shell"
 	"github.com/csnewman/droidmole/agent/client/state"
+	"github.com/csnewman/droidmole/agent/client/sync"
 	"github.com/csnewman/droidmole/agent/client/syslog"
 	"github.com/csnewman/droidmole/agent/protocol"
 	"google.golang.org/grpc"
@@ -105,6 +106,30 @@ func (c *Client) SendInput(ctx context.Context, event input.Event) error {
 // Requires that the emulator has reached the "running" state, otherwise an error will be returned.
 func (c *Client) OpenShell(ctx context.Context, request shell.Request) (*shell.Shell, error) {
 	return shell.Open(ctx, c.client, request)
+}
+
+// ListDirectory list all files in a directory.
+// Requires that the emulator has reached the "running" state, otherwise an error will be returned.
+func (c *Client) ListDirectory(ctx context.Context, path string) ([]sync.DirectoryEntry, error) {
+	return sync.ListDirectory(ctx, c.client, path)
+}
+
+// StatFile stats a given path, optionally following links.
+// Requires that the emulator has reached the "running" state, otherwise an error will be returned.
+func (c *Client) StatFile(ctx context.Context, path string, followLinks bool) (*sync.FileStat, error) {
+	return sync.StatFile(ctx, c.client, path, followLinks)
+}
+
+// PullFile starts a file download transfer for the given path.
+// Requires that the emulator has reached the "running" state, otherwise an error will be returned.
+func (c *Client) PullFile(ctx context.Context, path string) (*sync.PullStream, error) {
+	return sync.PullFile(ctx, c.client, path)
+}
+
+// PushFile starts a file upload transfer for the given path.
+// Requires that the emulator has reached the "running" state, otherwise an error will be returned.
+func (c *Client) PushFile(ctx context.Context, path string, mode uint32) (*sync.PushStream, error) {
+	return sync.PushFile(ctx, c.client, path, mode)
 }
 
 func (c *Client) Close() error {

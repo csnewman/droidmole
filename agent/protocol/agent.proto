@@ -32,6 +32,23 @@ service AgentController {
   // Requires that the emulator has reached the "running" state, otherwise an error will be returned.
   // The request stream must start with a single ShellStartRequest message.
   rpc openShell(stream ShellRequest) returns (stream ShellResponse);
+
+  // List all files in a directory.
+  // Requires that the emulator has reached the "running" state, otherwise an error will be returned.
+  rpc listDirectory(ListDirectoryRequest) returns (ListDirectoryResponse);
+
+  // Stat a given file.
+  // Requires that the emulator has reached the "running" state, otherwise an error will be returned.
+  rpc statFile(StatFileRequest) returns (StatFileResponse);
+
+  // Pull a file from the emulator.
+  // Requires that the emulator has reached the "running" state, otherwise an error will be returned.
+  rpc pullFile(PullFileRequest) returns (stream PullFileResponse);
+
+  // Push a file to the emulator.
+  // Requires that the emulator has reached the "running" state, otherwise an error will be returned.
+  // The request stream must start with a single PushFileStartRequest message.
+  rpc pushFile(stream PushFileRequest) returns (google.protobuf.Empty);
 }
 
 // AgentState describes the current state of the agent process and the virtual machine being controlled.
@@ -211,4 +228,102 @@ message ShellOutputResponse {
 message ShellExitResponse {
   // The exit code.
   uint32 code = 1;
+}
+
+// A directory listing request
+message ListDirectoryRequest {
+  // The directory path to list files in.
+  string path = 1;
+}
+
+// A directory listing response.
+message ListDirectoryResponse {
+  repeated ListDirectoryEntry entries = 1;
+}
+
+// A entry in a directory listing.
+message ListDirectoryEntry {
+  // The entry name.
+  string name = 1;
+
+  // Stat of the file.
+  oneof stat {
+    uint32 stat_error = 2;
+    FileStat stat_value = 3;
+  }
+}
+
+message FileStat {
+  uint64 dev = 1;
+  uint64 ino = 2;
+  uint32 mode = 3;
+  uint32 nlink = 4;
+  uint32 uid = 5;
+  uint32 gid = 6;
+  uint64 size = 7;
+  int64 atime = 8;
+  int64 mtime = 9;
+  int64 ctime = 10;
+}
+
+// A file stat request.
+message StatFileRequest {
+  // The file to stat.
+  string path = 1;
+
+  // Whether to follow links.
+  bool follow_links = 2;
+}
+
+// A file stat response.
+message StatFileResponse {
+  oneof stat {
+    uint32 stat_error = 1;
+    FileStat stat_value = 2;
+  }
+}
+
+// A file pull request.
+message PullFileRequest {
+  // The file path to pull.
+  string path = 1;
+}
+
+// A file pull response.
+message PullFileResponse {
+  // Raw bytes from the file.
+  bytes data = 1;
+
+  // Whether the end oof the file has been reached.
+  bool last = 2;
+}
+
+// A file push request.
+message PushFileRequest {
+  oneof message {
+    PushFileStartRequest start = 1;
+    PushFileDataRequest data = 2;
+    PushFileEndRequest end = 3;
+  }
+}
+
+// A file push start request.
+message PushFileStartRequest {
+  // The file path to write to.
+  string path = 1;
+
+  // The mode to create the file with.
+  uint32 mode = 2;
+}
+
+// A file push data request.
+message PushFileDataRequest {
+  // Data to write to the file.
+  bytes data = 1;
+}
+
+// A file push end request.
+message PushFileEndRequest {
+  // The modified time to set.
+  uint32 mtime = 1;
 }
