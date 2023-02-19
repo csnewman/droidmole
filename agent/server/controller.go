@@ -5,6 +5,7 @@ import (
 	"github.com/csnewman/droidmole/agent/protocol"
 	"github.com/csnewman/droidmole/agent/server/emulator"
 	"github.com/csnewman/droidmole/agent/server/shell"
+	"github.com/csnewman/droidmole/agent/server/sync"
 	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -109,4 +110,68 @@ func (s *agentControllerServer) OpenShell(server protocol.AgentController_OpenSh
 	}
 
 	return shell.Process(server)
+}
+
+func (s *agentControllerServer) ListDirectory(ctx context.Context, request *protocol.ListDirectoryRequest) (*protocol.ListDirectoryResponse, error) {
+	var respError error
+
+	s.server.mu.Lock()
+	if s.server.state != StateRunning {
+		respError = status.Errorf(codes.FailedPrecondition, "emulator not running")
+	}
+	s.server.mu.Unlock()
+
+	if respError != nil {
+		return nil, respError
+	}
+
+	return sync.ListDirectory(*request)
+}
+
+func (s *agentControllerServer) StatFile(ctx context.Context, request *protocol.StatFileRequest) (*protocol.StatFileResponse, error) {
+	var respError error
+
+	s.server.mu.Lock()
+	if s.server.state != StateRunning {
+		respError = status.Errorf(codes.FailedPrecondition, "emulator not running")
+	}
+	s.server.mu.Unlock()
+
+	if respError != nil {
+		return nil, respError
+	}
+
+	return sync.StatFile(*request)
+}
+
+func (s *agentControllerServer) PullFile(request *protocol.PullFileRequest, server protocol.AgentController_PullFileServer) error {
+	var respError error
+
+	s.server.mu.Lock()
+	if s.server.state != StateRunning {
+		respError = status.Errorf(codes.FailedPrecondition, "emulator not running")
+	}
+	s.server.mu.Unlock()
+
+	if respError != nil {
+		return respError
+	}
+
+	return sync.PullFile(*request, server)
+}
+
+func (s *agentControllerServer) PushFile(server protocol.AgentController_PushFileServer) error {
+	var respError error
+
+	s.server.mu.Lock()
+	if s.server.state != StateRunning {
+		respError = status.Errorf(codes.FailedPrecondition, "emulator not running")
+	}
+	s.server.mu.Unlock()
+
+	if respError != nil {
+		return respError
+	}
+
+	return sync.PushFile(server)
 }

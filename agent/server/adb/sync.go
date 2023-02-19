@@ -28,7 +28,7 @@ type FileStat struct {
 	INo   uint64
 	Mode  uint32
 	NLink uint32
-	Uid   uint32
+	UId   uint32
 	GId   uint32
 	Size  uint64
 	ATime int64
@@ -42,7 +42,7 @@ func parseFileStat(data []byte) FileStat {
 		INo:   binary.LittleEndian.Uint64(data[8:16]),
 		Mode:  binary.LittleEndian.Uint32(data[16:20]),
 		NLink: binary.LittleEndian.Uint32(data[20:24]),
-		Uid:   binary.LittleEndian.Uint32(data[24:28]),
+		UId:   binary.LittleEndian.Uint32(data[24:28]),
 		GId:   binary.LittleEndian.Uint32(data[28:32]),
 		Size:  binary.LittleEndian.Uint64(data[32:40]),
 		ATime: int64(binary.LittleEndian.Uint64(data[40:48])),
@@ -118,17 +118,17 @@ func ListDirectory(path string) ([]ListDirectoryEntry, error) {
 	return entries, nil
 }
 
-func StatFile(path string, followLinks bool) (*FileStat, error) {
+func StatFile(path string, followLinks bool) (uint32, *FileStat, error) {
 	conn, err := OpenEmulator()
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
 
 	defer conn.Close()
 
 	err = conn.SendCommand([]byte("sync:"))
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
 
 	packet := make([]byte, 8+len(path))
@@ -143,13 +143,13 @@ func StatFile(path string, followLinks bool) (*FileStat, error) {
 
 	err = conn.WriteRaw(packet)
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
 
 	respPacket := make([]byte, FileStatSize+8)
 	err = conn.ReadRaw(respPacket)
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
 
 	id := binary.LittleEndian.Uint32(respPacket[0:4])
@@ -159,16 +159,16 @@ func StatFile(path string, followLinks bool) (*FileStat, error) {
 		msg := make([]byte, statError)
 		err = conn.ReadRaw(msg)
 		if err != nil {
-			return nil, err
+			return 0, nil, err
 		}
 
-		return nil, errors.New(string(msg))
+		return 0, nil, errors.New(string(msg))
 	} else if id != IdStatV2 && id != IdLStatV2 {
-		return nil, errors.New("unexpected response id")
+		return 0, nil, errors.New("unexpected response id")
 	}
 
 	fs := parseFileStat(respPacket[8 : 8+FileStatSize])
-	return &fs, nil
+	return statError, &fs, nil
 }
 
 type PullFileStream struct {
@@ -334,4 +334,8 @@ func (s *PushFileStream) Done(mtime uint32) error {
 	} else {
 		return errors.New("unexpected resp id")
 	}
+}
+
+func (s *PushFileStream) Close() error {
+	return s.conn.Close()
 }
