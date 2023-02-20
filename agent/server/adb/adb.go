@@ -47,14 +47,5 @@ func StartServer() error {
 		return err
 	}
 
-	log.Println("Starting socat")
-	cmd = exec.Command("socat", "-d", "tcp-listen:8037,reuseaddr,fork", "tcp:127.0.0.1:5037")
-	cmd.Stdout = log.Writer()
-	cmd.Stderr = log.Writer()
-	err = cmd.Start()
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
