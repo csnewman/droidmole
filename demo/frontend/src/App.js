@@ -1,7 +1,9 @@
-import './App.css';
-import React, { useRef, useEffect, useState, useReducer } from 'react'
-
+import React, {useEffect, useReducer, useRef, useState} from 'react'
+import Tab from 'react-bootstrap/Tab';
+import Tabs from 'react-bootstrap/Tabs';
 import {Connection} from "./Connection";
+import 'xterm/css/xterm.css'
+import './App.css';
 
 function App() {
     const canvasRef = useRef(null);
@@ -25,14 +27,46 @@ function App() {
         <div key={index}>{msg}</div>
     )).reverse();
 
+    const kernMessages = state.kernMessages.map((msg, index) => (
+        <div key={index}>{msg}</div>
+    )).reverse();
+
+    function handleShellOpen(e) {
+        e.preventDefault();
+        state.openShell();
+    }
+
     return (
         <div className="App">
             <header className="App-header">
-                <canvas ref={canvasRef} className="ScreenCanvas" touch-action="none"></canvas>
-                <h2>Log:</h2>
-                <div className="LogOutput">
-                    {messages}
-                </div>
+                <Tabs
+                    defaultActiveKey="display"
+                    id="uncontrolled-tab-example"
+                >
+                    <Tab eventKey="display" title="Display">
+                        <canvas ref={canvasRef} className="ScreenCanvas" touch-action="none"></canvas>
+                    </Tab>
+                    <Tab eventKey="log" title="Log">
+                        <div className="LogOutput">
+                            {messages}
+                        </div>
+                    </Tab>
+                    <Tab eventKey="kernlog" title="KernLog">
+                        <div className="LogOutput">
+                            {kernMessages}
+                        </div>
+                    </Tab>
+                    <Tab eventKey="shell" title="Shell">
+                        <button onClick={handleShellOpen} disabled={state.shellOpen}>
+                            Open Shell
+                        </button>
+                        <div className="terminal-wrapper">
+                            <div id="terminal"></div>
+                        </div>
+                    </Tab>
+                </Tabs>
+
+
             </header>
         </div>
     );

@@ -1,14 +1,9 @@
 .App-header {
-    background-color: #282c34;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    font-size: calc(10px + 1vmin);
     color: white;
 }
 
 .ScreenCanvas {
-    padding: 10px;
+    margin: 10px;
     width: 360px;
     height: 640px;
     min-height: 640px;
@@ -16,6 +11,20 @@
 }
 
 .LogOutput {
-    flex-grow: 1;
+    height: 100%;
     overflow-y: scroll;
+}
+
+.tab-pane {
+    position: absolute;
+    top: 42px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    overflow: hidden;
+}
+
+.terminal-wrapper {
+    display: flex;
+    overflow: auto;
 }

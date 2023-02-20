@@ -1,4 +1,6 @@
 import {CheckWebCodecSupport} from "./CodecFallback";
+import {Terminal} from "xterm";
+import {FitAddon} from 'xterm-addon-fit';
 
 export class Connection {
 
@@ -6,15 +8,23 @@ export class Connection {
         this.forceUpdate = forceUpdate;
         this.canvasRef = canvasRef;
         this.messages = [];
+        this.kernMessages = [];
         this.started = false;
-        this.touchIdSlotMap = new Map();
-        this.touchSlots = [];
+        this.shellOpen = false;
     }
 
     async start() {
         this.log("Starting");
 
+        this.displayWidth = 720;
+        this.displayHeight = 1280;
+
         this.canvas = this.canvasRef.current
+        // this.canvas.width = this.displayWidth;
+        // this.canvas.height = this.displayHeight;
+        this.canvas.width = 320;
+        this.canvas.height = 640;
+
         this.canvasContext = this.canvas.getContext('2d')
         this.canvasContext.fillStyle = "purple";
         this.canvasContext.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -44,10 +54,8 @@ export class Connection {
 
         const config = {
             codec: "vp8",
-            // codedWidth: 720,
-            // codedHeight: 1280,
-            codedWidth: 1920,
-            codedHeight: 1080,
+            codedWidth: this.displayWidth,
+            codedHeight: this.displayHeight,
             optimizeForLatency: true,
             // hardwareAcceleration: "prefer-hardware",
         };
@@ -87,7 +95,7 @@ export class Connection {
         };
         this.decoder = new window.VideoDecoder(init);
         this.decoder.configure(config);
-        // console.log(decoder.addEventListener);
+        // Unsupported in fallback
         // decoder.addEventListener("dequeue", (event) => {
         //     console.log(event);f
         // });
@@ -126,11 +134,24 @@ export class Connection {
     wsMessage(messageEvent) {
         var wsMsg = messageEvent.data;
         if (typeof wsMsg === 'string') {
-            this.log("Received: " + wsMsg);
+            let parsedMsg = JSON.parse(wsMsg);
+
+            switch (parsedMsg.type) {
+                case 'log':
+                    this.log("< " + parsedMsg.line);
+                    break;
+                case 'kernlog':
+                    this.kernMessages.push(parsedMsg.line);
+                    this.forceUpdate();
+                    break;
+                case 'shell-data':
+                    this.term.write(parsedMsg.line);
+                    break;
+            }
         } else {
             var arrayBuffer;
             var fileReader = new FileReader();
-            fileReader.onload = async function(event) {
+            fileReader.onload = async function (event) {
                 arrayBuffer = event.target.result;
                 var gdata = new Uint8Array(arrayBuffer);
 
@@ -147,7 +168,7 @@ export class Connection {
                     data: fdata,
                 });
                 this.decoder.decode(chunk)
-            };
+            }.bind(this);
             fileReader.readAsArrayBuffer(wsMsg);
         }
     }
@@ -176,71 +197,67 @@ export class Connection {
 
     processTouchEvent(event) {
         let eventType = event.type.substring(0, 5);
-        const deviceDisplay = event.target;
-
-        let xArr = [];
-        let yArr = [];
-        let slotArr = [];
-
         if (eventType == 'mouse') {
-            xArr.push(event.offsetX);
-            yArr.push(event.offsetY);
-            slotArr.push(0);
+            this.sendTouchEvent(0, event.offsetX, event.offsetY, this.mouseDown ? 1 : 0);
         } else if (eventType == 'touch') {
             let changes = event.changedTouches;
             let rect = event.target.getBoundingClientRect();
             for (let i = 0; i < changes.length; i++) {
-                xArr.push(changes[i].pageX - rect.left);
-                yArr.push(changes[i].pageY - rect.top);
-                if (this.touchIdSlotMap.has(changes[i].identifier)) {
-                    let slot = this.touchIdSlotMap.get(changes[i].identifier);
 
-                    slotArr.push(slot);
-                    if (event.type == 'touchend') {
-                        this.touchSlots[slot] = false;
-                        this.touchIdSlotMap.delete(changes[i].identifier);
-                    }
-                } else if (event.type == 'touchstart') {
-                    let slot = -1;
-                    for (let i = 0; i < this.touchSlots.length; i++) {
-                        if (!this.touchSlots[i]) {
-                            slot = i;
-                            break;
-                        }
-                    }
-
-                    if (slot == -1) {
-                        slot = this.touchSlots.length;
-                        this.touchSlots.push(true);
-                    }
-
-                    slotArr.push(slot);
-                    this.touchSlots[slot] = true;
-                    this.touchIdSlotMap.set(changes[i].identifier, slot);
-                }
+                this.sendTouchEvent(
+                    changes[i].identifier,
+                    changes[i].pageX - rect.left,
+                    changes[i].pageY - rect.top,
+                    this.mouseDown ? 1 : 0,
+                );
             }
         }
+    }
 
-        const screenWidth = 1080;
-        const screenHeight = 1920;
-        const elementWidth = deviceDisplay.offsetWidth ? deviceDisplay.offsetWidth : 1;
-        const elementHeight = deviceDisplay.offsetHeight ? deviceDisplay.offsetHeight : 1;
-
-        const scalingX = screenWidth / elementWidth;
-        const scalingY = screenHeight / elementHeight;
-
-        for (let i = 0; i < xArr.length; i++) {
-            xArr[i] = Math.max(0, Math.min(screenWidth, Math.trunc(xArr[i] * scalingX)));
-            yArr[i] = Math.max(0, Math.min(screenHeight, Math.trunc(yArr[i] * scalingY)));
-        }
+    sendTouchEvent(id, x, y, pressure) {
+        const elementWidth = this.canvas.offsetWidth ? this.canvas.offsetWidth : 1;
+        const elementHeight = this.canvas.offsetHeight ? this.canvas.offsetHeight : 1;
+        const scalingX = this.displayWidth / elementWidth;
+        const scalingY = this.displayHeight / elementHeight;
+        x = Math.max(0, Math.min(this.displayWidth, Math.trunc(x * scalingX)));
+        y = Math.max(0, Math.min(this.displayHeight, Math.trunc(y * scalingY)));
 
         const msg = {
-            type: 'touch',
-            x: xArr,
-            y: yArr,
-            down: this.mouseDown ? 1 : 0,
-            slot: slotArr,
+            type: 'touch-event',
+            touchEvent: {
+                id: id,
+                x: x,
+                y: y,
+                pressure: pressure,
+            },
         };
         this.ws.send(JSON.stringify(msg));
+    }
+
+    openShell() {
+        if (this.shellOpen) return;
+        this.shellOpen = true;
+        this.forceUpdate();
+
+        this.term = new Terminal({
+            scrollback: 1000,
+        });
+        const fitAddon = new FitAddon();
+        this.term.loadAddon(fitAddon);
+        this.term.open(document.getElementById('terminal'));
+        fitAddon.fit();
+
+        const msg = {
+            type: 'open-shell',
+        };
+        this.ws.send(JSON.stringify(msg));
+
+        this.term.onData(e => {
+            const msg = {
+                type: 'shell-data',
+                line: e,
+            };
+            this.ws.send(JSON.stringify(msg));
+        });
     }
 }
