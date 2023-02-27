@@ -15,7 +15,7 @@ type RawConnection struct {
 }
 
 func NewRawConnection() (*RawConnection, error) {
-	conn, err := net.Dial("tcp", ":8037")
+	conn, err := net.Dial("tcp", ":5037")
 	if err != nil {
 		return nil, err
 	}
