@@ -1,6 +1,7 @@
 package emulator
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/csnewman/droidmole/agent/protocol"
 	"github.com/csnewman/droidmole/agent/server/adb"
@@ -9,9 +10,11 @@ import (
 	"github.com/csnewman/droidmole/agent/server/syslog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"io"
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 )
 
@@ -30,17 +33,30 @@ type Monitor interface {
 }
 
 type Emulator struct {
-	monitor    Monitor
-	emuCmd     *exec.Cmd
-	controller *controller.Controller
-	request    *protocol.StartEmulatorRequest
-	mu         sync.Mutex
+	monitor       Monitor
+	emuCmd        *exec.Cmd
+	controller    *controller.Controller
+	request       *protocol.StartEmulatorRequest
+	mu            sync.Mutex
+	outPipeReader *io.PipeReader
+	outPipeWriter *io.PipeWriter
+	errPipeReader *io.PipeReader
+	errPipeWriter *io.PipeWriter
+	exitErr       chan string
 }
 
 func Start(request *protocol.StartEmulatorRequest, monitor Monitor) (*Emulator, error) {
+	opr, opw := io.Pipe()
+	epr, epw := io.Pipe()
+
 	emu := &Emulator{
-		monitor: monitor,
-		request: request,
+		monitor:       monitor,
+		request:       request,
+		outPipeReader: opr,
+		outPipeWriter: opw,
+		errPipeReader: epr,
+		errPipeWriter: epw,
+		exitErr:       make(chan string),
 	}
 	err := emu.startEmulator()
 	if err != nil {
@@ -75,7 +91,6 @@ func (e *Emulator) startEmulator() error {
 		return err
 	}
 
-	log.Println("Starting emulator")
 	cmd := exec.Command(
 		"/android/emulator/emulator",
 		"-avd", "Custom",
@@ -87,20 +102,20 @@ func (e *Emulator) startEmulator() error {
 		"-wipe-data",
 		"-shell-serial", fmt.Sprintf("unix:%s", syslog.SockAddr),
 		"-gpu", "swiftshader_indirect",
-		//"-kernel", "/agent/customKern",
-		"-kernel", "/android/system-image/kernel-ranchu",
-		"-vendor", "/android/system-image/vendor.img",
-		"-system", "/android/system-image/system.img",
-		"-encryption-key", "/android/system-image/encryptionkey.img",
-		//"-ramdisk", "/agent/custom.img",
-		"-ramdisk", "/android/system-image/ramdisk.img",
-		"-data", "/android/system-image/userdata.img",
+		//"-debug", "all",
+		// TODO: Add image overriding
+		//"-kernel", "/android/system-image/kernel-ranchu",
+		//"-vendor", "/android/system-image/vendor.img",
+		//"-system", "/android/system-image/system.img",
+		//"-encryption-key", "/android/system-image/encryptionkey.img",
+		//"-ramdisk", "/android/system-image/ramdisk.img",
+		//"-data", "/android/system-image/userdata.img",
 		"-qemu", "-append", "panic=1",
 	)
 	cmd.Env = append(cmd.Env, "ANDROID_AVD_HOME=/android/home")
 	cmd.Env = append(cmd.Env, "ANDROID_SDK_ROOT=/android")
-	cmd.Stdout = log.Writer()
-	cmd.Stderr = log.Writer()
+	cmd.Stdout = e.outPipeWriter
+	cmd.Stderr = e.errPipeWriter
 
 	err = cmd.Start()
 	if err != nil {
@@ -109,6 +124,8 @@ func (e *Emulator) startEmulator() error {
 
 	e.emuCmd = cmd
 
+	go e.processLogs()
+
 	go e.watchEmulatorExit()
 
 	go e.connect()
@@ -116,10 +133,99 @@ func (e *Emulator) startEmulator() error {
 	return nil
 }
 
+func (e *Emulator) processLogs() {
+	outChan := make(chan string)
+	errChan := make(chan string)
+
+	go processChannel(e.outPipeReader, outChan)
+	go processChannel(e.errPipeReader, errChan)
+
+	lastError := ""
+
+outer:
+	for {
+		select {
+		case line, ok := <-outChan:
+			if !ok {
+				break outer
+			}
+			log.Println("[OUT]", line)
+		case line, ok := <-errChan:
+			if !ok {
+				break outer
+			}
+			log.Println("[ERR]", line)
+
+			if strings.HasPrefix(line, "ERROR   |") {
+				lastError = line
+			} else {
+				lastError += "\n" + line
+			}
+		}
+	}
+
+	log.Println("Waiting for end of stdout")
+	for {
+		line, ok := <-outChan
+		if !ok {
+			break
+		}
+		log.Println("[OUT]", line)
+	}
+
+	log.Println("Waiting for end of stderr")
+	for {
+		line, ok := <-errChan
+		if !ok {
+			break
+		}
+		log.Println("[ERR]", line)
+
+		if strings.HasPrefix(line, "ERROR   |") {
+			lastError = strings.TrimPrefix(line, "ERROR   |")
+		} else {
+			lastError += "\n" + line
+		}
+	}
+
+	log.Println("Emulator output end reached")
+	e.exitErr <- strings.TrimSpace(lastError)
+}
+
+func processChannel(reader *io.PipeReader, dstChan chan string) {
+	defer func() {
+		// recover from panic caused by writing to a closed channel
+		if r := recover(); r != nil {
+			log.Println("logs error recovered", r)
+			return
+		}
+	}()
+
+	scanner := bufio.NewScanner(reader)
+	for scanner.Scan() {
+		line := scanner.Text()
+		dstChan <- line
+	}
+
+	reader.Close()
+	close(dstChan)
+}
+
 func (e *Emulator) watchEmulatorExit() {
 	err := e.emuCmd.Wait()
 	log.Println("Emulator exited", err)
-	e.monitor.OnEmulatorExit(err)
+
+	e.outPipeWriter.Close()
+	e.errPipeWriter.Close()
+
+	lastError := <-e.exitErr
+
+	var finalError error
+	if err != nil {
+		finalError = fmt.Errorf("emulator exited with: %s, last error: %s", err, lastError)
+	}
+
+	e.monitor.OnEmulatorExit(finalError)
 }
 
 func (e *Emulator) connect() {

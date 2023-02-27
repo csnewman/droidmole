@@ -99,6 +99,8 @@ func (s *Server) broadcastState() {
 	switch s.state {
 	case StateError:
 		newState.EmulatorState = protocol.AgentState_ERROR
+		msg := s.stateError.Error()
+		newState.EmulatorError = &msg
 	case StateStopped:
 		newState.EmulatorState = protocol.AgentState_OFF
 	case StateStarting:
@@ -111,8 +113,20 @@ func (s *Server) broadcastState() {
 }
 
 func (s *Server) OnEmulatorExit(err error) {
-	//TODO implement me
-	panic("implement me")
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if err != nil {
+		log.Println("Emulator exited with error:", err)
+		s.state = StateError
+		s.stateError = err
+	} else {
+		log.Println("Emulator cleanly")
+		s.state = StateStopped
+		s.stateError = nil
+	}
+
+	s.broadcastState()
 }
 
 func (s *Server) OnEmulatorStarted() {

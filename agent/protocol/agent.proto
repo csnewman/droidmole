@@ -66,6 +66,9 @@ message AgentState {
 
   // The state of the emulator.
   EmulatorState emulator_state = 1;
+
+  // The error message associated with the error state.
+  optional string emulator_error = 2;
 }
 
 // Requests the emulator boots with the given configuration.
