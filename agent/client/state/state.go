@@ -30,7 +30,11 @@ type Stream struct {
 
 // State represents the current state of the agent process and the virtual machine being controlled.
 type State struct {
+	// EmulatorState stores the state of the emulator.
 	EmulatorState EmulatorState
+
+	// EmulatorError stores the error message associated with the error state.
+	EmulatorError *string
 }
 
 // Open starts a new stream.
@@ -54,5 +58,6 @@ func (s *Stream) Recv() (*State, error) {
 
 	return &State{
 		EmulatorState: EmulatorState(state.EmulatorState),
+		EmulatorError: state.EmulatorError,
 	}, nil
 }
