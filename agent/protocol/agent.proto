@@ -90,6 +90,9 @@ message StartEmulatorRequest {
   uint32 lcd_width = 4;
   // The height of the main display.
   uint32 lcd_height = 5;
+
+  // Whether to root the adb session on start
+  bool root_adb = 6;
 }
 
 // Requests the emulator exits.

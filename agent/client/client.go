@@ -66,6 +66,9 @@ type StartEmulatorRequest struct {
 
 	// LcdHeight signifies the height of the main display.
 	LcdHeight uint32
+
+	// RootADB requests the ADB connection is rooted. This does not guarantee the connection is rooted.
+	RootADB bool
 }
 
 // StartEmulator requests the emulator starts. An error will be returned if the emulator is already running.
@@ -76,6 +79,7 @@ func (c *Client) StartEmulator(ctx context.Context, request StartEmulatorRequest
 		LcdDensity: request.LcdDensity,
 		LcdWidth:   request.LcdWidth,
 		LcdHeight:  request.LcdHeight,
+		RootAdb:    request.RootADB,
 	})
 	return err
 }

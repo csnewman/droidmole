@@ -1,6 +1,7 @@
 package adb
 
 import (
+	"bufio"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -123,6 +124,17 @@ func (c *RawConnection) ReadShellBlob() (byte, []byte, error) {
 	}
 
 	return id, blob, nil
+}
+
+func (c *RawConnection) ReadLine() (*string, error) {
+	scanner := bufio.NewScanner(c.conn)
+	if scanner.Scan() {
+		text := scanner.Text()
+		return &text, nil
+	}
+
+	c.Close()
+	return nil, scanner.Err()
 }
 
 func (c *RawConnection) WriteShellBlob(id byte, blob []byte) error {

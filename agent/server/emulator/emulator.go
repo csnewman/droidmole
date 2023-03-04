@@ -264,6 +264,28 @@ func (e *Emulator) connect() {
 		log.Fatal(err)
 	}
 
+	// Root the connection if requested
+	if e.request.RootAdb {
+		emuCon, err := adb.OpenEmulator()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		defer emuCon.Close()
+
+		err = emuCon.SendCommand([]byte("root:"))
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		line, err := emuCon.ReadLine()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println("Root response:", *line)
+	}
+
 	log.Println("Emulator started")
 	e.monitor.OnEmulatorStarted()
 }
