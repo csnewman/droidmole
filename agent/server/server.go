@@ -121,7 +121,7 @@ func (s *Server) OnEmulatorExit(err error) {
 		s.state = StateError
 		s.stateError = err
 	} else {
-		log.Println("Emulator cleanly")
+		log.Println("Emulator cleanly exited")
 		s.state = StateStopped
 		s.stateError = nil
 	}

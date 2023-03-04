@@ -29,6 +29,8 @@ type AgentControllerClient interface {
 	StreamState(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (AgentController_StreamStateClient, error)
 	// Requests the emulator starts. An error will be returned if the emulator is already running.
 	StartEmulator(ctx context.Context, in *StartEmulatorRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	// Requests the emulator exits. An error will be returned if the emulator is not running.
+	StopEmulator(ctx context.Context, in *StopEmulatorRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 	// Streams the display in the requested format.
 	// An initial value will be immediately produced with the current display content. This stream can and should be
 	// started before the emulator is started to ensure no frames are missed. The stream will is persistent between
@@ -102,6 +104,15 @@ func (x *agentControllerStreamStateClient) Recv() (*AgentState, error) {
 func (c *agentControllerClient) StartEmulator(ctx context.Context, in *StartEmulatorRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
 	out := new(empty.Empty)
 	err := c.cc.Invoke(ctx, "/AgentController/startEmulator", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentControllerClient) StopEmulator(ctx context.Context, in *StopEmulatorRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, "/AgentController/stopEmulator", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -306,6 +317,8 @@ type AgentControllerServer interface {
 	StreamState(*empty.Empty, AgentController_StreamStateServer) error
 	// Requests the emulator starts. An error will be returned if the emulator is already running.
 	StartEmulator(context.Context, *StartEmulatorRequest) (*empty.Empty, error)
+	// Requests the emulator exits. An error will be returned if the emulator is not running.
+	StopEmulator(context.Context, *StopEmulatorRequest) (*empty.Empty, error)
 	// Streams the display in the requested format.
 	// An initial value will be immediately produced with the current display content. This stream can and should be
 	// started before the emulator is started to ensure no frames are missed. The stream will is persistent between
@@ -346,6 +359,9 @@ func (UnimplementedAgentControllerServer) StreamState(*empty.Empty, AgentControl
 }
 func (UnimplementedAgentControllerServer) StartEmulator(context.Context, *StartEmulatorRequest) (*empty.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method StartEmulator not implemented")
+}
+func (UnimplementedAgentControllerServer) StopEmulator(context.Context, *StopEmulatorRequest) (*empty.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StopEmulator not implemented")
 }
 func (UnimplementedAgentControllerServer) StreamDisplay(*StreamDisplayRequest, AgentController_StreamDisplayServer) error {
 	return status.Errorf(codes.Unimplemented, "method StreamDisplay not implemented")
@@ -419,6 +435,24 @@ func _AgentController_StartEmulator_Handler(srv interface{}, ctx context.Context
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AgentControllerServer).StartEmulator(ctx, req.(*StartEmulatorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentController_StopEmulator_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StopEmulatorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentControllerServer).StopEmulator(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/AgentController/stopEmulator",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentControllerServer).StopEmulator(ctx, req.(*StopEmulatorRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -602,6 +636,10 @@ var AgentController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "startEmulator",
 			Handler:    _AgentController_StartEmulator_Handler,
+		},
+		{
+			MethodName: "stopEmulator",
+			Handler:    _AgentController_StopEmulator_Handler,
 		},
 		{
 			MethodName: "sendInput",

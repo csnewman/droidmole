@@ -56,6 +56,16 @@ func (c *Controller) SendTouch(event protocol.TouchEvent) error {
 	return err
 }
 
+func (c *Controller) RequestExit() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	_, err := c.controlClient.SetVmState(ctx, &protocol.VmRunState{
+		State: protocol.VmRunState_SHUTDOWN,
+	})
+	return err
+}
+
 type DisplayStream struct {
 	shmFile   *os.File
 	shmData   []byte

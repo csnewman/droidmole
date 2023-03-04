@@ -34,13 +34,16 @@ func (s *agentControllerServer) StreamState(e *empty.Empty, server protocol.Agen
 	}
 }
 
-func (s *agentControllerServer) StartEmulator(ctx context.Context, request *protocol.StartEmulatorRequest) (*empty.Empty, error) {
-	var respError error
-
+func (s *agentControllerServer) StartEmulator(_ context.Context, request *protocol.StartEmulatorRequest) (*empty.Empty, error) {
 	s.server.mu.Lock()
+	defer s.server.mu.Unlock()
 
-	if s.server.state != StateStopped {
-		respError = status.Errorf(codes.FailedPrecondition, "emulator already running")
+	if s.server.state != StateStopped && s.server.state != StateError {
+		err := status.Errorf(codes.FailedPrecondition, "emulator already running")
+
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		emu, err := emulator.Start(request, s.server)
 
@@ -57,10 +60,27 @@ func (s *agentControllerServer) StartEmulator(ctx context.Context, request *prot
 		}
 	}
 
-	s.server.mu.Unlock()
+	return &empty.Empty{}, nil
+}
 
-	if respError != nil {
-		return nil, respError
+func (s *agentControllerServer) StopEmulator(_ context.Context, request *protocol.StopEmulatorRequest) (*empty.Empty, error) {
+	s.server.mu.Lock()
+	defer s.server.mu.Unlock()
+
+	if s.server.state != StateRunning {
+		err := status.Errorf(codes.FailedPrecondition, "emulator is not running")
+
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		err := s.server.emu.Stop(request)
+
+		if err != nil {
+			s.server.state = StateError
+			s.server.emu = nil
+			s.server.stateError = err
+		}
 	}
 
 	return &empty.Empty{}, nil

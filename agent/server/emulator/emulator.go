@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"syscall"
 )
 
 type Frame struct {
@@ -33,16 +34,17 @@ type Monitor interface {
 }
 
 type Emulator struct {
-	monitor       Monitor
-	emuCmd        *exec.Cmd
-	controller    *controller.Controller
-	request       *protocol.StartEmulatorRequest
-	mu            sync.Mutex
-	outPipeReader *io.PipeReader
-	outPipeWriter *io.PipeWriter
-	errPipeReader *io.PipeReader
-	errPipeWriter *io.PipeWriter
-	exitErr       chan string
+	monitor            Monitor
+	emuCmd             *exec.Cmd
+	controller         *controller.Controller
+	request            *protocol.StartEmulatorRequest
+	mu                 sync.Mutex
+	outPipeReader      *io.PipeReader
+	outPipeWriter      *io.PipeWriter
+	errPipeReader      *io.PipeReader
+	errPipeWriter      *io.PipeWriter
+	exitErr            chan string
+	forceExitRequested bool
 }
 
 func Start(request *protocol.StartEmulatorRequest, monitor Monitor) (*Emulator, error) {
@@ -114,8 +116,13 @@ func (e *Emulator) startEmulator() error {
 	)
 	cmd.Env = append(cmd.Env, "ANDROID_AVD_HOME=/android/home")
 	cmd.Env = append(cmd.Env, "ANDROID_SDK_ROOT=/android")
+
+	// Redirect output
 	cmd.Stdout = e.outPipeWriter
 	cmd.Stderr = e.errPipeWriter
+
+	// Place emulator into its own process group to allow terminating of entire process tree
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	err = cmd.Start()
 	if err != nil {
@@ -141,6 +148,7 @@ func (e *Emulator) processLogs() {
 	go processChannel(e.errPipeReader, errChan)
 
 	lastError := ""
+	inError := false
 
 outer:
 	for {
@@ -157,8 +165,11 @@ outer:
 			log.Println("[ERR]", line)
 
 			if strings.HasPrefix(line, "ERROR   |") {
-				lastError = line
-			} else {
+				inError = true
+				lastError = strings.TrimPrefix(line, "ERROR   |")
+			} else if strings.HasPrefix(line, "WARNING |") || strings.HasPrefix(line, "INFO    |") {
+				inError = false
+			} else if inError {
 				lastError += "\n" + line
 			}
 		}
@@ -182,8 +193,11 @@ outer:
 		log.Println("[ERR]", line)
 
 		if strings.HasPrefix(line, "ERROR   |") {
+			inError = true
 			lastError = strings.TrimPrefix(line, "ERROR   |")
-		} else {
+		} else if strings.HasPrefix(line, "WARNING |") || strings.HasPrefix(line, "INFO    |") {
+			inError = false
+		} else if inError {
 			lastError += "\n" + line
 		}
 	}
@@ -218,10 +232,14 @@ func (e *Emulator) watchEmulatorExit() {
 	e.outPipeWriter.Close()
 	e.errPipeWriter.Close()
 
+	status := e.emuCmd.ProcessState.Sys().(syscall.WaitStatus)
+
 	lastError := <-e.exitErr
 
 	var finalError error
-	if err != nil {
+	if e.forceExitRequested && status.Signaled() && status.Signal() == syscall.SIGKILL {
+		// Don't treat a requested force kill as an error
+	} else if err != nil {
 		finalError = fmt.Errorf("emulator exited with: %s, last error: %s", err, lastError)
 	}
 
@@ -299,4 +317,21 @@ func (e *Emulator) ProcessInput(request protocol.InputRequest) error {
 	default:
 		return status.Errorf(codes.InvalidArgument, "unknown request")
 	}
+}
+
+func (e *Emulator) Stop(request *protocol.StopEmulatorRequest) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	// Kill by terminating process group
+	if request.ForceExit {
+		e.forceExitRequested = true
+		return syscall.Kill(-e.emuCmd.Process.Pid, syscall.SIGKILL)
+	}
+
+	if e.controller == nil {
+		return status.Errorf(codes.FailedPrecondition, "emulator not ready")
+	}
+
+	return e.controller.RequestExit()
 }

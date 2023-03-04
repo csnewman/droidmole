@@ -80,6 +80,14 @@ func (c *Client) StartEmulator(ctx context.Context, request StartEmulatorRequest
 	return err
 }
 
+// StopEmulator requests the emulator exists.
+func (c *Client) StopEmulator(ctx context.Context, forceExit bool) error {
+	_, err := c.client.StopEmulator(ctx, &protocol.StopEmulatorRequest{
+		ForceExit: forceExit,
+	})
+	return err
+}
+
 // StreamDisplay streams the display in the requested format.
 // An initial value will be immediately produced with the current display content. This stream can and should be started
 // before the emulator is started to ensure no frames are missed. The stream will is persistent between emulator

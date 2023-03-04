@@ -14,6 +14,9 @@ service AgentController {
   // Requests the emulator starts. An error will be returned if the emulator is already running.
   rpc startEmulator(StartEmulatorRequest) returns (google.protobuf.Empty);
 
+  // Requests the emulator exits. An error will be returned if the emulator is not running.
+  rpc stopEmulator(StopEmulatorRequest) returns (google.protobuf.Empty);
+
   // Streams the display in the requested format.
   // An initial value will be immediately produced with the current display content. This stream can and should be
   // started before the emulator is started to ensure no frames are missed. The stream will is persistent between
@@ -87,6 +90,12 @@ message StartEmulatorRequest {
   uint32 lcd_width = 4;
   // The height of the main display.
   uint32 lcd_height = 5;
+}
+
+// Requests the emulator exits.
+message StopEmulatorRequest {
+  // Kills the emulator without waiting.
+  bool force_exit = 1;
 }
 
 // Requests the display is streamed with the given configuration.
