@@ -5,8 +5,8 @@ import (
 	"strings"
 )
 
-func (s *systemImpl) SendCommand(cmd []byte) (*RawConnection, error) {
-	conn, err := NewRawConnection()
+func (s *systemImpl) SendCommand(cmd []byte) (RawConnection, error) {
+	conn, err := s.rawFactory.NewRawConnection()
 	if err != nil {
 		return nil, err
 	}
@@ -67,6 +67,6 @@ func (s *systemImpl) WaitForEmulator() error {
 	}
 }
 
-func (s *systemImpl) OpenEmulator() (*RawConnection, error) {
+func (s *systemImpl) OpenEmulator() (RawConnection, error) {
 	return s.SendCommand([]byte("host:transport-local"))
 }

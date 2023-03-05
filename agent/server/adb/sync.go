@@ -172,7 +172,7 @@ func (s *systemImpl) StatFile(path string, followLinks bool) (uint32, *FileStat,
 }
 
 type PullFileStream struct {
-	conn *RawConnection
+	conn RawConnection
 }
 
 func (s *systemImpl) PullFile(path string) (*PullFileStream, error) {
@@ -242,7 +242,7 @@ func (s *PullFileStream) Close() error {
 }
 
 type PushFileStream struct {
-	conn *RawConnection
+	conn RawConnection
 }
 
 func (s *systemImpl) PushFile(path string, mode uint32) (*PushFileStream, error) {

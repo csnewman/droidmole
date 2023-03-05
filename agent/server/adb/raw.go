@@ -11,20 +11,43 @@ import (
 )
 
 // RawConnection based on https://android.googlesource.com/platform/packages/modules/adb/+/HEAD/OVERVIEW.TXT
-type RawConnection struct {
+type RawConnection interface {
+	Close() error
+	WriteRaw(packet []byte) error
+	WriteMessage(msg []byte) error
+	ReadRaw(blob []byte) error
+	ReadStatus() (string, error)
+	ReadHexPrefixedBlob() ([]byte, error)
+	ReadShellBlob() (byte, []byte, error)
+	ReadLine() (*string, error)
+	WriteShellBlob(id byte, blob []byte) error
+	SendCommand(cmd []byte) error
+}
+
+type RawConnectionFactory interface {
+	NewRawConnection() (RawConnection, error)
+}
+
+type networkRawConn struct {
 	conn net.Conn
 }
 
-func NewRawConnection() (*RawConnection, error) {
+type networkRawConnFactory struct{}
+
+func NewRawConnectionFactory() RawConnectionFactory {
+	return &networkRawConnFactory{}
+}
+
+func (_ networkRawConnFactory) NewRawConnection() (RawConnection, error) {
 	conn, err := net.Dial("tcp", ":5037")
 	if err != nil {
 		return nil, err
 	}
 
-	return &RawConnection{conn: conn}, nil
+	return &networkRawConn{conn: conn}, nil
 }
 
-func (c *RawConnection) Close() error {
+func (c *networkRawConn) Close() error {
 	err := c.conn.Close()
 	// Ignore network closed error
 	if err != nil && errors.Is(err, net.ErrClosed) {
@@ -33,7 +56,7 @@ func (c *RawConnection) Close() error {
 	return err
 }
 
-func (c *RawConnection) WriteRaw(packet []byte) error {
+func (c *networkRawConn) WriteRaw(packet []byte) error {
 	wrote, err := c.conn.Write(packet)
 	if err != nil {
 		c.Close()
@@ -49,7 +72,7 @@ func (c *RawConnection) WriteRaw(packet []byte) error {
 	return nil
 }
 
-func (c *RawConnection) WriteMessage(msg []byte) error {
+func (c *networkRawConn) WriteMessage(msg []byte) error {
 	// Determine max message length
 	packet := []byte(fmt.Sprintf("%04x%s", len(msg), msg))
 	err := c.WriteRaw(packet)
@@ -60,7 +83,7 @@ func (c *RawConnection) WriteMessage(msg []byte) error {
 	return err
 }
 
-func (c *RawConnection) ReadRaw(blob []byte) error {
+func (c *networkRawConn) ReadRaw(blob []byte) error {
 	_, err := io.ReadFull(c.conn, blob)
 	if err != nil {
 		c.Close()
@@ -70,7 +93,7 @@ func (c *RawConnection) ReadRaw(blob []byte) error {
 	return nil
 }
 
-func (c *RawConnection) ReadStatus() (string, error) {
+func (c *networkRawConn) ReadStatus() (string, error) {
 	resp := make([]byte, 4)
 	_, err := io.ReadFull(c.conn, resp)
 	if err != nil {
@@ -81,7 +104,7 @@ func (c *RawConnection) ReadStatus() (string, error) {
 	return string(resp), nil
 }
 
-func (c *RawConnection) ReadHexPrefixedBlob() ([]byte, error) {
+func (c *networkRawConn) ReadHexPrefixedBlob() ([]byte, error) {
 	sizeBlob := make([]byte, 4)
 	_, err := io.ReadFull(c.conn, sizeBlob)
 	if err != nil {
@@ -105,7 +128,7 @@ func (c *RawConnection) ReadHexPrefixedBlob() ([]byte, error) {
 	return blob, nil
 }
 
-func (c *RawConnection) ReadShellBlob() (byte, []byte, error) {
+func (c *networkRawConn) ReadShellBlob() (byte, []byte, error) {
 	header := make([]byte, 5)
 	_, err := io.ReadFull(c.conn, header)
 	if err != nil {
@@ -126,7 +149,7 @@ func (c *RawConnection) ReadShellBlob() (byte, []byte, error) {
 	return id, blob, nil
 }
 
-func (c *RawConnection) ReadLine() (*string, error) {
+func (c *networkRawConn) ReadLine() (*string, error) {
 	scanner := bufio.NewScanner(c.conn)
 	if scanner.Scan() {
 		text := scanner.Text()
@@ -137,7 +160,7 @@ func (c *RawConnection) ReadLine() (*string, error) {
 	return nil, scanner.Err()
 }
 
-func (c *RawConnection) WriteShellBlob(id byte, blob []byte) error {
+func (c *networkRawConn) WriteShellBlob(id byte, blob []byte) error {
 	header := make([]byte, 5)
 	header[0] = id
 	binary.LittleEndian.PutUint32(header[1:], uint32(len(blob)))
@@ -157,7 +180,7 @@ func (c *RawConnection) WriteShellBlob(id byte, blob []byte) error {
 	return nil
 }
 
-func (c *RawConnection) SendCommand(cmd []byte) error {
+func (c *networkRawConn) SendCommand(cmd []byte) error {
 	err := c.WriteMessage(cmd)
 	if err != nil {
 		c.Close()

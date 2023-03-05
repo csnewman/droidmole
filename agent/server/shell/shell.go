@@ -207,7 +207,7 @@ type shellResponseChanMsg struct {
 }
 
 func receiveShellResponse(
-	conn *adb.RawConnection,
+	conn adb.RawConnection,
 	responseChan chan shellResponseChanMsg,
 	exited *atomic.Bool,
 ) {

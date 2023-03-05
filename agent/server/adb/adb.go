@@ -1,7 +1,8 @@
 package adb
 
 import (
-	"log"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapio"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -9,10 +10,10 @@ import (
 
 type Adb interface {
 	StartServer() error
-	SendCommand(cmd []byte) (*RawConnection, error)
+	SendCommand(cmd []byte) (RawConnection, error)
 	ExecuteCommand(cmd []byte, hasBody bool) ([]byte, error)
 	WaitForEmulator() error
-	OpenEmulator() (*RawConnection, error)
+	OpenEmulator() (RawConnection, error)
 	ListDirectory(path string) ([]ListDirectoryEntry, error)
 	StatFile(path string, followLinks bool) (uint32, *FileStat, error)
 	PullFile(path string) (*PullFileStream, error)
@@ -20,10 +21,15 @@ type Adb interface {
 }
 
 type systemImpl struct {
+	log        *zap.SugaredLogger
+	rawFactory RawConnectionFactory
 }
 
-func New() Adb {
-	return &systemImpl{}
+func New(log *zap.SugaredLogger, rawFactory RawConnectionFactory) Adb {
+	return &systemImpl{
+		log:        log,
+		rawFactory: rawFactory,
+	}
 }
 
 func (s *systemImpl) StartServer() error {
@@ -41,11 +47,16 @@ func (s *systemImpl) StartServer() error {
 	// Regenerate adb key
 	keyPath := filepath.Join(homedir, ".android/adbkey")
 
-	// Generate ley
-	log.Println("Generating ADB key")
+	childLogger := s.log.Named("adb").Desugar()
+	logWriter := &zapio.Writer{
+		Log: childLogger,
+	}
+
+	// Generate key
+	s.log.Info("Generating ADB key")
 	cmd := exec.Command("/android/platform-tools/adb", "keygen", keyPath)
-	cmd.Stdout = log.Writer()
-	cmd.Stderr = log.Writer()
+	cmd.Stdout = logWriter
+	cmd.Stderr = logWriter
 	err = cmd.Run()
 	if err != nil {
 		return err
@@ -57,10 +68,10 @@ func (s *systemImpl) StartServer() error {
 	}
 
 	// Start server
-	log.Println("Starting ADB server")
+	s.log.Info("Starting ADB server")
 	cmd = exec.Command("/android/platform-tools/adb", "start-server")
-	cmd.Stdout = log.Writer()
-	cmd.Stderr = log.Writer()
+	cmd.Stdout = logWriter
+	cmd.Stderr = logWriter
 	err = cmd.Run()
 	if err != nil {
 		return err

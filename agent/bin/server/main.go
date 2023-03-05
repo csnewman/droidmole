@@ -19,6 +19,7 @@ func main() {
 		di.Value(sugar),
 		di.Provider(server.New),
 		di.Provider(adb.New),
+		di.Provider(adb.NewRawConnectionFactory),
 	)
 	if err != nil {
 		sugar.Fatal(err)
