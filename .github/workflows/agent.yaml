@@ -1,0 +1,28 @@
+name: Agent CI
+on:
+  push:
+    paths:
+      - '.github/workflows/agent.yaml'
+      - 'agent/**'
+  pull_request:
+    paths:
+      - '.github/workflows/agent.yaml'
+      - 'agent/**'
+
+jobs:
+  build-server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.20.0'
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libvpx-dev build-essential pkg-config
+      - name: Run build
+        run: cd agent && go build bin/server/main.go
+      - name: Run tests
+        run: cd agent && go test -v ./...
