@@ -7,7 +7,26 @@ import (
 	"path/filepath"
 )
 
-func StartServer() error {
+type Adb interface {
+	StartServer() error
+	SendCommand(cmd []byte) (*RawConnection, error)
+	ExecuteCommand(cmd []byte, hasBody bool) ([]byte, error)
+	WaitForEmulator() error
+	OpenEmulator() (*RawConnection, error)
+	ListDirectory(path string) ([]ListDirectoryEntry, error)
+	StatFile(path string, followLinks bool) (uint32, *FileStat, error)
+	PullFile(path string) (*PullFileStream, error)
+	PushFile(path string, mode uint32) (*PushFileStream, error)
+}
+
+type systemImpl struct {
+}
+
+func New() Adb {
+	return &systemImpl{}
+}
+
+func (s *systemImpl) StartServer() error {
 	// Ensure android directory exists
 	homedir, err := os.UserHomeDir()
 	if err != nil {

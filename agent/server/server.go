@@ -23,6 +23,8 @@ const (
 )
 
 type Server struct {
+	adb adb.Adb
+
 	state            State
 	stateError       error
 	mu               sync.Mutex
@@ -32,8 +34,9 @@ type Server struct {
 	syslog           *syslog.SysLog
 }
 
-func New() *Server {
+func New(adb adb.Adb) *Server {
 	return &Server{
+		adb:              adb,
 		state:            StateStopped,
 		stateBroadcaster: broadcaster.New[*protocol.AgentState](),
 		frameBroadcaster: broadcaster.New[*emulator.Frame](),
@@ -45,7 +48,7 @@ func (s *Server) Start() {
 
 	go s.startHeartbeat()
 
-	err := adb.StartServer()
+	err := s.adb.StartServer()
 	if err != nil {
 		log.Fatal("failed to start adb server", err)
 	}

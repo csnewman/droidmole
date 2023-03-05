@@ -45,7 +45,7 @@ func (s *agentControllerServer) StartEmulator(_ context.Context, request *protoc
 			return nil, err
 		}
 	} else {
-		emu, err := emulator.Start(request, s.server)
+		emu, err := emulator.Start(s.server.adb, request, s.server)
 
 		if err != nil {
 			s.server.state = StateError
@@ -129,7 +129,7 @@ func (s *agentControllerServer) OpenShell(server protocol.AgentController_OpenSh
 		return respError
 	}
 
-	return shell.Process(server)
+	return shell.Process(s.server.adb, server)
 }
 
 func (s *agentControllerServer) ListDirectory(ctx context.Context, request *protocol.ListDirectoryRequest) (*protocol.ListDirectoryResponse, error) {
@@ -145,7 +145,7 @@ func (s *agentControllerServer) ListDirectory(ctx context.Context, request *prot
 		return nil, respError
 	}
 
-	return sync.ListDirectory(*request)
+	return sync.ListDirectory(s.server.adb, *request)
 }
 
 func (s *agentControllerServer) StatFile(ctx context.Context, request *protocol.StatFileRequest) (*protocol.StatFileResponse, error) {
@@ -161,7 +161,7 @@ func (s *agentControllerServer) StatFile(ctx context.Context, request *protocol.
 		return nil, respError
 	}
 
-	return sync.StatFile(*request)
+	return sync.StatFile(s.server.adb, *request)
 }
 
 func (s *agentControllerServer) PullFile(request *protocol.PullFileRequest, server protocol.AgentController_PullFileServer) error {
@@ -177,7 +177,7 @@ func (s *agentControllerServer) PullFile(request *protocol.PullFileRequest, serv
 		return respError
 	}
 
-	return sync.PullFile(*request, server)
+	return sync.PullFile(s.server.adb, *request, server)
 }
 
 func (s *agentControllerServer) PushFile(server protocol.AgentController_PushFileServer) error {
@@ -193,5 +193,5 @@ func (s *agentControllerServer) PushFile(server protocol.AgentController_PushFil
 		return respError
 	}
 
-	return sync.PushFile(server)
+	return sync.PushFile(s.server.adb, server)
 }

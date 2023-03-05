@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 )
 
-func Process(server protocol.AgentController_OpenShellServer) error {
+func Process(adb adb.Adb, server protocol.AgentController_OpenShellServer) error {
 	initMsg, err := server.Recv()
 	if err != nil {
 		return err

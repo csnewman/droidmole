@@ -57,8 +57,8 @@ type ListDirectoryEntry struct {
 	Stat      FileStat
 }
 
-func ListDirectory(path string) ([]ListDirectoryEntry, error) {
-	conn, err := OpenEmulator()
+func (s *systemImpl) ListDirectory(path string) ([]ListDirectoryEntry, error) {
+	conn, err := s.OpenEmulator()
 	if err != nil {
 		return nil, err
 	}
@@ -118,8 +118,8 @@ func ListDirectory(path string) ([]ListDirectoryEntry, error) {
 	return entries, nil
 }
 
-func StatFile(path string, followLinks bool) (uint32, *FileStat, error) {
-	conn, err := OpenEmulator()
+func (s *systemImpl) StatFile(path string, followLinks bool) (uint32, *FileStat, error) {
+	conn, err := s.OpenEmulator()
 	if err != nil {
 		return 0, nil, err
 	}
@@ -175,8 +175,8 @@ type PullFileStream struct {
 	conn *RawConnection
 }
 
-func PullFile(path string) (*PullFileStream, error) {
-	conn, err := OpenEmulator()
+func (s *systemImpl) PullFile(path string) (*PullFileStream, error) {
+	conn, err := s.OpenEmulator()
 	if err != nil {
 		return nil, err
 	}
@@ -245,8 +245,8 @@ type PushFileStream struct {
 	conn *RawConnection
 }
 
-func PushFile(path string, mode uint32) (*PushFileStream, error) {
-	conn, err := OpenEmulator()
+func (s *systemImpl) PushFile(path string, mode uint32) (*PushFileStream, error) {
+	conn, err := s.OpenEmulator()
 	if err != nil {
 		return nil, err
 	}

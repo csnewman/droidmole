@@ -22,7 +22,7 @@ func convertFileStat(stat adb.FileStat) *protocol.FileStat {
 	}
 }
 
-func ListDirectory(request protocol.ListDirectoryRequest) (*protocol.ListDirectoryResponse, error) {
+func ListDirectory(adb adb.Adb, request protocol.ListDirectoryRequest) (*protocol.ListDirectoryResponse, error) {
 	entries, err := adb.ListDirectory(request.Path)
 	if err != nil {
 		return nil, err
@@ -54,7 +54,7 @@ func ListDirectory(request protocol.ListDirectoryRequest) (*protocol.ListDirecto
 
 }
 
-func StatFile(request protocol.StatFileRequest) (*protocol.StatFileResponse, error) {
+func StatFile(adb adb.Adb, request protocol.StatFileRequest) (*protocol.StatFileResponse, error) {
 	statError, stat, err := adb.StatFile(request.Path, request.FollowLinks)
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func StatFile(request protocol.StatFileRequest) (*protocol.StatFileResponse, err
 	}
 }
 
-func PullFile(request protocol.PullFileRequest, server protocol.AgentController_PullFileServer) error {
+func PullFile(adb adb.Adb, request protocol.PullFileRequest, server protocol.AgentController_PullFileServer) error {
 	stream, err := adb.PullFile(request.Path)
 	if err != nil {
 		return err
@@ -109,7 +109,7 @@ func PullFile(request protocol.PullFileRequest, server protocol.AgentController_
 	})
 }
 
-func PushFile(server protocol.AgentController_PushFileServer) error {
+func PushFile(adb adb.Adb, server protocol.AgentController_PushFileServer) error {
 	initMsg, err := server.Recv()
 	if err != nil {
 		return err

@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func SendCommand(cmd []byte) (*RawConnection, error) {
+func (s *systemImpl) SendCommand(cmd []byte) (*RawConnection, error) {
 	conn, err := NewRawConnection()
 	if err != nil {
 		return nil, err
@@ -20,8 +20,8 @@ func SendCommand(cmd []byte) (*RawConnection, error) {
 	return conn, nil
 }
 
-func ExecuteCommand(cmd []byte, hasBody bool) ([]byte, error) {
-	conn, err := SendCommand(cmd)
+func (s *systemImpl) ExecuteCommand(cmd []byte, hasBody bool) ([]byte, error) {
+	conn, err := s.SendCommand(cmd)
 	if err != nil {
 		return nil, err
 	}
@@ -36,8 +36,8 @@ func ExecuteCommand(cmd []byte, hasBody bool) ([]byte, error) {
 	return conn.ReadHexPrefixedBlob()
 }
 
-func WaitForEmulator() error {
-	conn, err := SendCommand([]byte("host:track-devices"))
+func (s *systemImpl) WaitForEmulator() error {
+	conn, err := s.SendCommand([]byte("host:track-devices"))
 	if err != nil {
 		return err
 	}
@@ -67,6 +67,6 @@ func WaitForEmulator() error {
 	}
 }
 
-func OpenEmulator() (*RawConnection, error) {
-	return SendCommand([]byte("host:transport-local"))
+func (s *systemImpl) OpenEmulator() (*RawConnection, error) {
+	return s.SendCommand([]byte("host:transport-local"))
 }

@@ -34,6 +34,7 @@ type Monitor interface {
 }
 
 type Emulator struct {
+	adb                adb.Adb
 	monitor            Monitor
 	emuCmd             *exec.Cmd
 	controller         *controller.Controller
@@ -47,11 +48,12 @@ type Emulator struct {
 	forceExitRequested bool
 }
 
-func Start(request *protocol.StartEmulatorRequest, monitor Monitor) (*Emulator, error) {
+func Start(adb adb.Adb, request *protocol.StartEmulatorRequest, monitor Monitor) (*Emulator, error) {
 	opr, opw := io.Pipe()
 	epr, epw := io.Pipe()
 
 	emu := &Emulator{
+		adb:           adb,
 		monitor:       monitor,
 		request:       request,
 		outPipeReader: opr,
@@ -259,14 +261,14 @@ func (e *Emulator) connect() {
 	go e.processDisplay()
 
 	log.Println("Waiting for ADB connection")
-	err = adb.WaitForEmulator()
+	err = e.adb.WaitForEmulator()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Root the connection if requested
 	if e.request.RootAdb {
-		emuCon, err := adb.OpenEmulator()
+		emuCon, err := e.adb.OpenEmulator()
 		if err != nil {
 			log.Fatal(err)
 		}
