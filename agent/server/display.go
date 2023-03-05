@@ -5,7 +5,7 @@ import (
 	"github.com/csnewman/droidmole/agent/server/emulator"
 	"github.com/csnewman/droidmole/agent/util/broadcaster"
 	"github.com/csnewman/droidmole/agent/util/vpx"
-	"log"
+	"go.uber.org/zap"
 	"time"
 )
 
@@ -13,6 +13,7 @@ func (s *agentControllerServer) StreamDisplay(request *protocol.StreamDisplayReq
 	frameListener := s.server.frameBroadcaster.Listener()
 
 	dp := &displayProcessor{
+		log:           s.log,
 		sds:           sds,
 		frameListener: frameListener,
 		request:       request,
@@ -20,7 +21,7 @@ func (s *agentControllerServer) StreamDisplay(request *protocol.StreamDisplayReq
 
 	err := dp.processFrame()
 	if err != nil {
-		log.Println("Error streaming display: ", err)
+		s.log.Error("Error streaming display: ", err)
 		return err
 	}
 
@@ -28,7 +29,7 @@ func (s *agentControllerServer) StreamDisplay(request *protocol.StreamDisplayReq
 		for {
 			err := dp.processFrame()
 			if err != nil {
-				log.Println("Error streaming display: ", err)
+				s.log.Error("Error streaming display: ", err)
 				return err
 			}
 
@@ -45,7 +46,7 @@ func (s *agentControllerServer) StreamDisplay(request *protocol.StreamDisplayReq
 			case <-ticker.C:
 				err := dp.processFrame()
 				if err != nil {
-					log.Println("Error streaming display: ", err)
+					s.log.Error("Error streaming display: ", err)
 					return err
 				}
 			}
@@ -54,6 +55,7 @@ func (s *agentControllerServer) StreamDisplay(request *protocol.StreamDisplayReq
 }
 
 type displayProcessor struct {
+	log           *zap.SugaredLogger
 	sds           protocol.AgentController_StreamDisplayServer
 	frameListener *broadcaster.Listener[*emulator.Frame]
 	img           *vpx.Image
@@ -79,7 +81,7 @@ func (p *displayProcessor) processFrame() error {
 		p.height = 0
 		p.frameCount = 0
 		p.lastKeyframe = now
-		log.Println("Changing stream resolution ", p.width, "x", p.height)
+		p.log.Info("Changing stream resolution ", p.width, "x", p.height)
 
 		if p.img != nil {
 			p.img.Free()
@@ -103,7 +105,7 @@ func (p *displayProcessor) processFrame() error {
 		p.height = frame.Height
 		p.frameCount = 0
 		p.lastKeyframe = now
-		log.Println("Changing stream resolution ", p.width, "x", p.height)
+		p.log.Info("Changing stream resolution ", p.width, "x", p.height)
 
 		// Reconfigure encoder
 		if p.img != nil {
@@ -137,7 +139,7 @@ func (p *displayProcessor) processFrame() error {
 
 		p.img = vpx.NullImage().Alloc(vpx.ImageFormatI420, uint32(p.width), uint32(p.height), 0)
 		if p.img == nil {
-			log.Panic("failed to create img")
+			p.log.Fatal("failed to create img")
 		}
 	}
 
@@ -161,7 +163,7 @@ func (p *displayProcessor) processFrame() error {
 	// Encode
 	err = p.codecCtx.Encode(p.img, vpx.CodecPts(p.frameCount), uint64(1), flags, vpx.DLRealtime)
 	if err != nil {
-		log.Fatal("scr error", err)
+		p.log.Fatal("scr error", err)
 	}
 
 	// Extract packets
@@ -186,5 +188,4 @@ func (p *displayProcessor) processFrame() error {
 	p.frameCount++
 
 	return nil
-
 }

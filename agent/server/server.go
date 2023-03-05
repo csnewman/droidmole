@@ -6,8 +6,8 @@ import (
 	"github.com/csnewman/droidmole/agent/server/emulator"
 	"github.com/csnewman/droidmole/agent/server/syslog"
 	"github.com/csnewman/droidmole/agent/util/broadcaster"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"log"
 	"net"
 	"sync"
 	"time"
@@ -23,6 +23,7 @@ const (
 )
 
 type Server struct {
+	log *zap.SugaredLogger
 	adb adb.Adb
 
 	state            State
@@ -34,8 +35,9 @@ type Server struct {
 	syslog           *syslog.SysLog
 }
 
-func New(adb adb.Adb) *Server {
+func New(log *zap.SugaredLogger, adb adb.Adb) *Server {
 	return &Server{
+		log:              log,
 		adb:              adb,
 		state:            StateStopped,
 		stateBroadcaster: broadcaster.New[*protocol.AgentState](),
@@ -44,32 +46,37 @@ func New(adb adb.Adb) *Server {
 }
 
 func (s *Server) Start() {
+	s.log.Info("Starting agent server")
+
 	s.broadcastState()
 
 	go s.startHeartbeat()
 
 	err := s.adb.StartServer()
 	if err != nil {
-		log.Fatal("failed to start adb server", err)
+		s.log.Fatal("failed to start adb server", err)
 	}
 
 	s.syslog, err = syslog.Start()
 	if err != nil {
-		log.Fatal("failed to start syslog", err)
+		s.log.Fatal("failed to start syslog", err)
 	}
 
 	lis, err := net.Listen("tcp", "0.0.0.0:8080")
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		s.log.Fatal("failed to listen", err)
 	}
 
 	acs := &agentControllerServer{
+		log:    s.log,
 		server: s,
 	}
 
 	grpcServer := grpc.NewServer()
 	protocol.RegisterAgentControllerServer(grpcServer, acs)
-	log.Fatal(grpcServer.Serve(lis))
+
+	s.log.Info("Servicing requests")
+	s.log.Fatal(grpcServer.Serve(lis))
 }
 
 func (s *Server) startHeartbeat() {
@@ -120,11 +127,11 @@ func (s *Server) OnEmulatorExit(err error) {
 	defer s.mu.Unlock()
 
 	if err != nil {
-		log.Println("Emulator exited with error:", err)
+		s.log.Info("Emulator exited with error:", err)
 		s.state = StateError
 		s.stateError = err
 	} else {
-		log.Println("Emulator cleanly exited")
+		s.log.Info("Emulator cleanly exited")
 		s.state = StateStopped
 		s.stateError = nil
 	}

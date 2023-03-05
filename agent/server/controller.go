@@ -7,13 +7,14 @@ import (
 	"github.com/csnewman/droidmole/agent/server/shell"
 	"github.com/csnewman/droidmole/agent/server/sync"
 	"github.com/golang/protobuf/ptypes/empty"
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"log"
 )
 
 type agentControllerServer struct {
 	protocol.UnimplementedAgentControllerServer
+	log    *zap.SugaredLogger
 	server *Server
 }
 
@@ -23,7 +24,7 @@ func (s *agentControllerServer) StreamState(e *empty.Empty, server protocol.Agen
 	for {
 		state, err := listener.Wait()
 		if err != nil {
-			log.Println("stopping state stream", err)
+			s.log.Debug("stopping state stream", err)
 			return nil
 		}
 

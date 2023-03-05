@@ -69,11 +69,24 @@ func (po providerOpt) apply(c *config) {
 	c.providers = append(c.providers, po.p)
 }
 
-func Provider(constructor interface{}, opts ...dig.ProvideOption) Option {
+func Provider(constructor any, opts ...dig.ProvideOption) Option {
 	return &providerOpt{
 		p: provider{
 			constructor: constructor,
 			opts:        opts,
 		},
 	}
+}
+
+func Value(value any, opts ...dig.ProvideOption) Option {
+	outs := []reflect.Type{
+		reflect.TypeOf(value),
+	}
+	fnType := reflect.FuncOf(nil, outs, false)
+	fn := reflect.MakeFunc(fnType, func(args []reflect.Value) []reflect.Value {
+		return []reflect.Value{
+			reflect.ValueOf(value),
+		}
+	})
+	return Provider(fn.Interface(), opts...)
 }
