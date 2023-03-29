@@ -1,1 +1,0 @@
-droidmole-y += arch/arm64/dm_syscalls.o

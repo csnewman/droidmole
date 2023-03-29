@@ -1,8 +1,0 @@
-# Build directories
-output
-buildtemp
-
-# IDE
-.idea
-cmake-build-debug
-CMakeLists.txt
