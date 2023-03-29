@@ -8,6 +8,7 @@ use std::time::Duration;
 use std::{panic, thread};
 
 mod logger;
+mod tracer;
 
 fn main() {
     logger::configure();
@@ -31,22 +32,22 @@ fn main() {
         match unistd::fork().expect("failed to fork") {
             ForkResult::Parent { .. } => {
                 unistd::close(unparker).expect("failed to close");
-                handleParent(parker);
+                handle_parent(parker);
             }
             ForkResult::Child => {
                 unistd::close(parker).expect("failed to close");
-                handleChild(unparker);
+                handle_child(unparker);
             }
         }
     }
 }
 
-fn handleParent(parker: RawFd) {
+fn handle_parent(parker: RawFd) {
     info!("Waiting for ptrace");
 
     let mut dest = [0];
     unistd::read(parker, &mut dest).expect("failed to read");
-    assert_eq!(dest[0], 4123);
+    assert_eq!(dest[0], 123);
 
     info!("Spawning original init process");
     let process_path = CString::new("/original-init").unwrap();
@@ -54,7 +55,9 @@ fn handleParent(parker: RawFd) {
         .expect("failed to start original-init");
 }
 
-fn handleChild(unparker: RawFd) {
+fn handle_child(unparker: RawFd) {
     let parent_id = Pid::parent();
     setsid().expect("failed to setsid");
+
+    tracer::trace(parent_id, unparker);
 }
