@@ -7,6 +7,7 @@ use std::os::fd::RawFd;
 use std::time::Duration;
 use std::{panic, thread};
 
+mod assets;
 mod logger;
 mod tracer;
 

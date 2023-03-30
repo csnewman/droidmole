@@ -1,3 +1,4 @@
+use crate::assets::DEVICE_AGENT;
 use anyhow::Result;
 use log::{debug, info, warn};
 use nix::sys::ptrace;
@@ -6,9 +7,12 @@ use nix::sys::signal::Signal;
 use nix::sys::wait::{waitpid, WaitPidFlag, WaitStatus};
 use nix::unistd;
 use nix::unistd::{chroot, ForkResult, Pid};
+use std::ffi::CString;
 use std::fs;
+use std::io::Write;
 use std::mem::transmute;
 use std::os::fd::RawFd;
+use std::os::unix::fs::OpenOptionsExt;
 use std::path::Path;
 
 pub fn trace(init_pid: Pid, unparker: RawFd) {
@@ -24,7 +28,7 @@ pub fn trace(init_pid: Pid, unparker: RawFd) {
             ptrace::Options::PTRACE_O_TRACEVFORK |
             ptrace::Options::PTRACE_O_TRACESYSGOOD,
     )
-        .expect("failed to ptrace process");
+    .expect("failed to ptrace process");
 
     info!("Unparking init process");
 
@@ -257,10 +261,26 @@ pub fn trace(init_pid: Pid, unparker: RawFd) {
 }
 
 fn spawn_device_agent(zygote_pid: Pid) {
-    debug!("Chrooting");
+    debug!("Changing root to system root");
     chroot("../").expect("failed to chroot");
 
-    unimplemented!("device agent spawning not implemented");
+    info!("Unpacking device-agent");
+    fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .mode(0o777)
+        .open("/data/local/tmp/device-agent")
+        .unwrap()
+        .write_all(DEVICE_AGENT)
+        .expect("failed to unpack device-agent");
+
+    info!("Spawning device-agent");
+    let process_path = CString::new("/data/local/tmp/device-agent").unwrap();
+    let arg1 = CString::new(zygote_pid.as_raw().to_string()).unwrap();
+
+    unistd::execve::<&CString, &CString>(&process_path, &[&process_path, &arg1], &[])
+        .expect("failed to start device-agent");
+    unreachable!()
 }
 
 enum TracerEvent {
