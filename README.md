@@ -1,8 +1,8 @@
 # droidmole
 
-Kernel based Android interception
+Android interception framework
 
-## Build Agent
+## Build (Container) Agent
 
 Install dependencies:
 
