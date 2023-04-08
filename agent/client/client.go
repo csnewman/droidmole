@@ -2,12 +2,8 @@ package client
 
 import (
 	"context"
-	"github.com/csnewman/droidmole/agent/client/display"
-	"github.com/csnewman/droidmole/agent/client/input"
 	"github.com/csnewman/droidmole/agent/client/shell"
-	"github.com/csnewman/droidmole/agent/client/state"
 	"github.com/csnewman/droidmole/agent/client/sync"
-	"github.com/csnewman/droidmole/agent/client/syslog"
 	"github.com/csnewman/droidmole/agent/protocol"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -37,13 +33,6 @@ func Connect(addr string) (*Client, error) {
 		conn:   conn,
 		client: client,
 	}, nil
-}
-
-// StreamState streams the state of the agent process.
-// An initial value will be immediately produced with the current agent state. Subsequent values may indicate a change
-// in the agent state, however this is not guaranteed and the same state can be delivered multiple times.
-func (c *Client) StreamState(ctx context.Context) (*state.Stream, error) {
-	return state.Open(ctx, c.client)
 }
 
 // StartEmulatorRequest represents a request to boot the emulator with the given configuration.
@@ -89,28 +78,6 @@ func (c *Client) StopEmulator(ctx context.Context, forceExit bool) error {
 	_, err := c.client.StopEmulator(ctx, &protocol.StopEmulatorRequest{
 		ForceExit: forceExit,
 	})
-	return err
-}
-
-// StreamDisplay streams the display in the requested format.
-// An initial value will be immediately produced with the current display content. This stream can and should be started
-// before the emulator is started to ensure no frames are missed. The stream will is persistent between emulator
-// restarts.
-func (c *Client) StreamDisplay(ctx context.Context, request display.Request) (*display.Stream, error) {
-	return display.Open(ctx, c.client, request)
-}
-
-// StreamSysLog streams the system log (kernel messages).
-// Previous messages are not returned. This stream can and should be started before the emulator is started to ensure no
-// messages are missed. The stream will is persistent between emulator restarts.
-func (c *Client) StreamSysLog(ctx context.Context) (*syslog.Stream, error) {
-	return syslog.Open(ctx, c.client)
-}
-
-// SendInput forward an input event to the emulator.
-func (c *Client) SendInput(ctx context.Context, event input.Event) error {
-	request := event.ToRequest()
-	_, err := c.client.SendInput(ctx, &request)
 	return err
 }
 

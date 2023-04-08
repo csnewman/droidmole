@@ -1,25 +1,25 @@
-package display
+package client
 
 import (
 	"context"
 	"github.com/csnewman/droidmole/agent/protocol"
 )
 
-// Format represents the format to encode frames with.
-type Format protocol.StreamDisplayRequest_FrameFormat
+// FrameFormat represents the format to encode frames with.
+type FrameFormat protocol.StreamDisplayRequest_FrameFormat
 
 const (
 	// RGB888 encodes 3 bytes per pixel.
-	RGB888 = Format(protocol.StreamDisplayRequest_RGB888)
+	RGB888 = FrameFormat(protocol.StreamDisplayRequest_RGB888)
 
 	// VP8 codec. Uses intermediate frames.
-	VP8 = Format(protocol.StreamDisplayRequest_VP8)
+	VP8 = FrameFormat(protocol.StreamDisplayRequest_VP8)
 )
 
-// A Request represents the configuration the display should be streamed.
-type Request struct {
+// A DisplayRequest represents the configuration the display should be streamed.
+type DisplayRequest struct {
 	// Format specifies the frame encoding format.
-	Format Format
+	Format FrameFormat
 
 	// MaxFPS specifies the maximum number of frames to encode per second.
 	// Extra frames will be dropped, with the most recent frame encoded every 1/max_fps seconds.
@@ -31,8 +31,8 @@ type Request struct {
 	KeyframeInterval uint32
 }
 
-// Stream represents a stream of display frames.
-type Stream struct {
+// DisplayStream represents a stream of display frames.
+type DisplayStream struct {
 	client protocol.AgentController_StreamDisplayClient
 }
 
@@ -48,9 +48,12 @@ type Frame struct {
 	Data []byte
 }
 
-// Open starts a new stream.
-func Open(ctx context.Context, client protocol.AgentControllerClient, request Request) (*Stream, error) {
-	stream, err := client.StreamDisplay(ctx, &protocol.StreamDisplayRequest{
+// StreamDisplay streams the display in the requested format.
+// An initial value will be immediately produced with the current display content. This stream can and should be started
+// before the emulator is started to ensure no frames are missed. The stream will is persistent between emulator
+// restarts.
+func (c *Client) StreamDisplay(ctx context.Context, request DisplayRequest) (*DisplayStream, error) {
+	stream, err := c.client.StreamDisplay(ctx, &protocol.StreamDisplayRequest{
 		Format:           protocol.StreamDisplayRequest_FrameFormat(request.Format),
 		MaxFps:           request.MaxFPS,
 		KeyframeInterval: request.KeyframeInterval,
@@ -59,13 +62,13 @@ func Open(ctx context.Context, client protocol.AgentControllerClient, request Re
 		return nil, err
 	}
 
-	return &Stream{
+	return &DisplayStream{
 		client: stream,
 	}, nil
 }
 
 // Recv blocks until a new frame is generated.
-func (s *Stream) Recv() (*Frame, error) {
+func (s *DisplayStream) Recv() (*Frame, error) {
 	frame, err := s.client.Recv()
 	if err != nil {
 		return nil, err

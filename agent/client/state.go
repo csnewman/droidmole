@@ -1,4 +1,4 @@
-package state
+package client
 
 import (
 	"context"
@@ -23,8 +23,8 @@ const (
 	EmulatorRunning = EmulatorState(protocol.AgentState_RUNNING)
 )
 
-// Stream represents a stream of agent states.
-type Stream struct {
+// StateStream represents a stream of agent states.
+type StateStream struct {
 	client protocol.AgentController_StreamStateClient
 }
 
@@ -37,20 +37,22 @@ type State struct {
 	EmulatorError *string
 }
 
-// Open starts a new stream.
-func Open(ctx context.Context, client protocol.AgentControllerClient) (*Stream, error) {
-	stream, err := client.StreamState(ctx, &empty.Empty{})
+// StreamState streams the state of the agent process.
+// An initial value will be immediately produced with the current agent state. Subsequent values may indicate a change
+// in the agent state, however this is not guaranteed and the same state can be delivered multiple times.
+func (c *Client) StreamState(ctx context.Context) (*StateStream, error) {
+	stream, err := c.client.StreamState(ctx, &empty.Empty{})
 	if err != nil {
 		return nil, err
 	}
 
-	return &Stream{
+	return &StateStream{
 		client: stream,
 	}, nil
 }
 
 // Recv blocks until a new state is received.
-func (s *Stream) Recv() (*State, error) {
+func (s *StateStream) Recv() (*State, error) {
 	state, err := s.client.Recv()
 	if err != nil {
 		return nil, err

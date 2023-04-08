@@ -1,9 +1,19 @@
-package input
+package client
 
-import "github.com/csnewman/droidmole/agent/protocol"
+import (
+	"context"
+	"github.com/csnewman/droidmole/agent/protocol"
+)
 
-type Event interface {
+type InputEvent interface {
 	ToRequest() protocol.InputRequest
+}
+
+// SendInput forward an input event to the emulator.
+func (c *Client) SendInput(ctx context.Context, event InputEvent) error {
+	request := event.ToRequest()
+	_, err := c.client.SendInput(ctx, &request)
+	return err
 }
 
 type TouchEvent struct {
