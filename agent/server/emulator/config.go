@@ -8,6 +8,12 @@ import (
 	"strconv"
 )
 
+const (
+	X8664    = "x86_64"
+	ARM64    = "arm64"
+	ARM64V8A = "arm64-v8a"
+)
+
 func GetImageCpu() (string, error) {
 	cfg, err := ini.Load("/android/system-image/build.prop")
 	if err != nil {
@@ -26,9 +32,6 @@ func GetImageCpu() (string, error) {
 	}
 
 	abi := key.Value()
-	if abi != "x86_64" {
-		return "", fmt.Errorf("unknown abi %s", abi)
-	}
 
 	return abi, nil
 }
@@ -84,7 +87,16 @@ func createConfig(request *protocol.StartEmulatorRequest) (*ini.File, error) {
 	}
 
 	section.Key("abi.type").SetValue(abi)
-	section.Key("hw.cpu.arch").SetValue(abi)
+
+	switch abi {
+	case X8664:
+		section.Key("hw.cpu.arch").SetValue(X8664)
+	case ARM64V8A:
+		section.Key("hw.cpu.arch").SetValue(ARM64)
+	default:
+		return nil, fmt.Errorf("unknown abi %s", abi)
+	}
+
 	section.Key("image.sysdir.1").SetValue("/android/system-image/")
 
 	return cfg, nil
