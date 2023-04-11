@@ -28,6 +28,7 @@ RUN if [ ! -d /emulator/lib64/vulkan/ ] ; then \
       snap download --basename=chromium chromium && \
       unsquashfs -d chromium chromium.snap && \
       cp ./chromium/usr/lib/chromium-browser/libvulkan.so.1 /emulator/lib64/vulkan/libvulkan.so && \
+      cp ./chromium/usr/lib/chromium-browser/libvk_swiftshader.so /emulator/lib64/vulkan/libvk_swiftshader.so && \
       cp ./chromium/usr/lib/chromium-browser/vk_swiftshader_icd.json /emulator/lib64/vulkan \
     ; fi
 
