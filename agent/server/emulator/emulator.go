@@ -7,7 +7,6 @@ import (
 	"github.com/csnewman/droidmole/agent/server/adb"
 	"github.com/csnewman/droidmole/agent/server/emulator/controller"
 	emuproto "github.com/csnewman/droidmole/agent/server/emulator/controller/protocol"
-	"github.com/csnewman/droidmole/agent/server/syslog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"io"
@@ -104,8 +103,14 @@ func (e *Emulator) startEmulator() error {
 		"-skip-adb-auth",
 		"-no-snapshot-save",
 		"-wipe-data",
-		"-shell-serial", fmt.Sprintf("unix:%s", syslog.SockAddr),
+		//"-shell-serial", fmt.Sprintf("unix:%s", syslog.SockAddr),
 		"-gpu", "swiftshader_indirect",
+		"-selinux", "permissive",
+		"-no-accel",
+		"-no-audio",
+		"-engine", "qemu2",
+		"-qemu",
+		"-cpu", "max",
 		//"-debug", "all",
 		// TODO: Add image overriding
 		//"-kernel", "/android/system-image/kernel-ranchu",
@@ -114,14 +119,22 @@ func (e *Emulator) startEmulator() error {
 		//"-encryption-key", "/android/system-image/encryptionkey.img",
 		//"-ramdisk", "/android/system-image/ramdisk.img",
 		//"-data", "/android/system-image/userdata.img",
-		"-qemu", "-append", "panic=1",
+
+		//"-ramdisk", "/cust/newdisk.img",
+		//"-kernel", "/cust/bzImage",
+
+		//"-qemu", "-append", "panic=0",
 	)
 	cmd.Env = append(cmd.Env, "ANDROID_AVD_HOME=/android/home")
 	cmd.Env = append(cmd.Env, "ANDROID_SDK_ROOT=/android")
 
 	// Redirect output
-	cmd.Stdout = e.outPipeWriter
-	cmd.Stderr = e.errPipeWriter
+
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stdout
+
+	//cmd.Stdout = e.outPipeWriter
+	//cmd.Stderr = e.errPipeWriter
 
 	// Place emulator into its own process group to allow terminating of entire process tree
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
@@ -285,7 +298,14 @@ func (e *Emulator) connect() {
 			log.Fatal(err)
 		}
 
-		log.Println("Root response:", *line)
+		if line != nil {
+
+			log.Println("Root response:", *line)
+		} else {
+
+			log.Println("Root response: NIL")
+		}
+
 	}
 
 	log.Println("Emulator started")

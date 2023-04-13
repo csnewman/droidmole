@@ -1,4 +1,4 @@
-FROM ghcr.io/csnewman/droidmole/avd-resources:33-latest as avd-resources
+FROM ghcr.io/csnewman/droidmole/avd-resources:dev-latest as avd-resources
 FROM ubuntu:23.04 AS builder
 
 ARG TARGETARCH
@@ -19,18 +19,18 @@ RUN bsdtar -xf /tmp/emulator.zip --strip-components=1 -C /emulator
 # ARM builds appear to be missing vulkan libs
 # Pull from
 # [ "$TARGETARCH" = "arm64" ] &&
-RUN if [ ! -d /emulator/lib64/vulkan/ ] ; then \
-      mkdir /armhack/ && \
-      mkdir -p /emulator/lib64/vulkan && \
-      cd /armhack/ && \
-      apt-get install -y glslang-tools snapd && \
-      cp $(which glslangValidator) /emulator/lib64/vulkan && \
-      snap download --basename=chromium chromium && \
-      unsquashfs -d chromium chromium.snap && \
-      cp ./chromium/usr/lib/chromium-browser/libvulkan.so.1 /emulator/lib64/vulkan/libvulkan.so && \
-      cp ./chromium/usr/lib/chromium-browser/libvk_swiftshader.so /emulator/lib64/vulkan/libvk_swiftshader.so && \
-      cp ./chromium/usr/lib/chromium-browser/vk_swiftshader_icd.json /emulator/lib64/vulkan \
-    ; fi
+#RUN if [ ! -d /emulator/lib64/vulkan/ ] ; then \
+#      mkdir /armhack/ && \
+#      mkdir -p /emulator/lib64/vulkan && \
+#      cd /armhack/ && \
+#      apt-get install -y glslang-tools snapd && \
+#      cp $(which glslangValidator) /emulator/lib64/vulkan && \
+#      snap download --basename=chromium chromium && \
+#      unsquashfs -d chromium chromium.snap && \
+#      cp ./chromium/usr/lib/chromium-browser/libvulkan.so.1 /emulator/lib64/vulkan/libvulkan.so && \
+#      cp ./chromium/usr/lib/chromium-browser/libvk_swiftshader.so /emulator/lib64/vulkan/libvk_swiftshader.so && \
+#      cp ./chromium/usr/lib/chromium-browser/vk_swiftshader_icd.json /emulator/lib64/vulkan \
+#    ; fi
 
 # Build agent
 WORKDIR /src
