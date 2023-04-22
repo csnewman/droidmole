@@ -1,4 +1,4 @@
-FROM ghcr.io/csnewman/droidmole/avd-resources:33-latest as avd-resources
+FROM ghcr.io/csnewman/droidmole/avd-resources:dev-latest as avd-resources
 FROM ubuntu:23.04 AS builder
 
 ARG TARGETARCH
