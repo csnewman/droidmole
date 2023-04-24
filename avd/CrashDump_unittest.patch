@@ -1,0 +1,13 @@
+diff -u a/CrashDump_unittest.cpp b/CrashDump_unittest.cpp
+--- a/CrashDump_unittest.cpp	2023-04-23 11:49:39.630179277 +0000
++++ b/CrashDump_unittest.cpp	2023-04-23 11:49:30.082264706 +0000
+@@ -12,6 +12,8 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+
++#include <thread>
++
+ #include <chrono>
+
+ #include "aemu/base/files/PathUtils.h"
+ 

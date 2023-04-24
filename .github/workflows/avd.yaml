@@ -1,0 +1,74 @@
+name: AVD Builder
+on:
+  push:
+    paths:
+      - '.github/workflows/avd.yaml'
+  schedule:
+    - cron: "0 3 * * *"
+
+jobs:
+  build-avd:
+    runs-on: self-hosted
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: '[common] Checkout'
+        uses: actions/checkout@v3
+      - name: '[common] Initialising repo'
+        run: |
+          repo init -u https://android.googlesource.com/platform/manifest -b emu-master-dev --depth=1
+        working-directory: /build/avd
+      - name: '[aarch64] Cleaning'
+        run: |
+          rm -rf *
+          find ./ -type f -name "index.lock" -exec rm -f {} \;
+        working-directory: /build/avd
+      - name: '[aarch64] Syncing repo'
+        run: |
+          repo sync -vcj 4 --force-sync --force-remove-dirty
+        working-directory: /build/avd
+      - name: '[aarch64] Patching'
+        run: |
+          patch /build/avd/external/qemu/android/emu/crashreport/test/android/crashreport/CrashDump_unittest.cpp < avd/CrashDump_unittest.patch
+      - name: '[aarch64] Building'
+        run: |
+          base_dir=$(pwd)
+          cd external/qemu
+          python android/build/python/cmake.py --target linux_aarch64 --config release --feature no-webrtc --feature no-qtwebengine --feature no-androidstudio --dist $base_dir/dist --sdk_build_number dm --task-disable CTest --task-disable AccelerationCheck --task-disable EmugenTest --task-disable GenEntriesTest --task-disable IntegrationTest --task-disable CoverageReport
+        working-directory: /build/avd
+      - name: '[aarch64] Copying'
+        run: |
+          cp /build/avd/dist/sdk-repo-linux_aarch64-emulator-dm.zip avd/emulator-arm64.zip
+      - name: '[x86_64] Cleaning'
+        run: |
+          rm -rf *
+        working-directory: /build/avd
+      - name: '[x86_64] Syncing repo'
+        run: |
+          repo sync -vcj 4 --force-sync --force-remove-dirty
+        working-directory: /build/avd
+      - name: '[x86_64] Patching'
+        run: |
+          patch /build/avd/external/qemu/android/emu/crashreport/test/android/crashreport/CrashDump_unittest.cpp < avd/CrashDump_unittest.patch
+      - name: '[x86_64] Building'
+        run: |
+          base_dir=$(pwd)
+          cd external/qemu
+          python android/build/python/cmake.py --target linux --config release --feature no-webrtc --feature no-qtwebengine --feature no-androidstudio --dist $base_dir/dist --sdk_build_number dm --task-disable CTest --task-disable AccelerationCheck --task-disable EmugenTest --task-disable GenEntriesTest --task-disable IntegrationTest --task-disable CoverageReport
+        working-directory: /build/avd
+      - name: '[x86_64] Copying'
+        run: |
+          cp /build/avd/dist/sdk-repo-linux-emulator-dm.zip avd/emulator-amd64.zip
+      - name: '[common] Login to GHCR'
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: '[common] Build and push container'
+        uses: docker/build-push-action@v4
+        with:
+          context: avd
+          push: true
+          tags: ghcr.io/csnewman/droidmole/avd-resources:dev-latest
