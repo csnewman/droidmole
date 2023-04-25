@@ -285,7 +285,12 @@ func (e *Emulator) connect() {
 			log.Fatal(err)
 		}
 
-		log.Println("Root response:", *line)
+		if line != nil {
+			log.Println("Root response:", *line)
+		} else {
+			log.Println("Root response: NIL")
+		}
+
 	}
 
 	log.Println("Emulator started")
