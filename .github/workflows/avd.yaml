@@ -29,9 +29,9 @@ jobs:
         run: |
           repo sync -vcj 4 --force-sync --force-remove-dirty
         working-directory: /build/avd
-      - name: '[aarch64] Patching'
-        run: |
-          patch /build/avd/external/qemu/android/emu/crashreport/test/android/crashreport/CrashDump_unittest.cpp < avd/CrashDump_unittest.patch
+#      - name: '[aarch64] Patching'
+#        run: |
+#          patch /build/avd/external/qemu/android/emu/crashreport/test/android/crashreport/CrashDump_unittest.cpp < avd/CrashDump_unittest.patch
       - name: '[aarch64] Building'
         run: |
           base_dir=$(pwd)
@@ -49,9 +49,9 @@ jobs:
         run: |
           repo sync -vcj 4 --force-sync --force-remove-dirty
         working-directory: /build/avd
-      - name: '[x86_64] Patching'
-        run: |
-          patch /build/avd/external/qemu/android/emu/crashreport/test/android/crashreport/CrashDump_unittest.cpp < avd/CrashDump_unittest.patch
+#      - name: '[x86_64] Patching'
+#        run: |
+#          patch /build/avd/external/qemu/android/emu/crashreport/test/android/crashreport/CrashDump_unittest.cpp < avd/CrashDump_unittest.patch
       - name: '[x86_64] Building'
         run: |
           base_dir=$(pwd)
