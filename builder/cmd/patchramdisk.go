@@ -4,14 +4,15 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
-	"github.com/pierrec/lz4/v4"
-	"github.com/spf13/cobra"
-	"github.com/u-root/u-root/pkg/cpio"
 	"io"
 	"log"
 	"os"
 	"path"
 	"strings"
+
+	"github.com/pierrec/lz4/v4"
+	"github.com/spf13/cobra"
+	"github.com/u-root/u-root/pkg/cpio"
 )
 
 var patchRamdiskCmd = &cobra.Command{
@@ -22,14 +23,15 @@ var patchRamdiskCmd = &cobra.Command{
 
 var ramdiskInput string
 var ramdiskModules string
+var ramdiskInit string
 var ramdiskOutput string
 
 func init() {
 	patchRamdiskCmd.Flags().StringVar(&ramdiskInput, "input", "", "Input File")
 	patchRamdiskCmd.Flags().StringVar(&ramdiskModules, "modules", "", "Directory containing replacement modules")
+	patchRamdiskCmd.Flags().StringVar(&ramdiskInit, "init", "", "Replacement init binary")
 	patchRamdiskCmd.Flags().StringVar(&ramdiskOutput, "output", "", "Destination File")
 	patchRamdiskCmd.MarkFlagRequired("input")
-	patchRamdiskCmd.MarkFlagRequired("modules")
 	patchRamdiskCmd.MarkFlagRequired("output")
 }
 
@@ -79,7 +81,9 @@ func executePatchRamdisk(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
-		outputBuffer.Write(newSegment)
+		if _, err := outputBuffer.Write(newSegment); err != nil {
+			return err
+		}
 
 		// Pad
 		length := outputBuffer.Len()
@@ -91,8 +95,7 @@ func executePatchRamdisk(cmd *cobra.Command, args []string) error {
 
 	// Output
 	log.Println("Storing new image", ramdiskOutput)
-	err = os.WriteFile(ramdiskOutput, outputBuffer.Bytes(), 0777)
-	if err != nil {
+	if err := os.WriteFile(ramdiskOutput, outputBuffer.Bytes(), 0777); err != nil {
 		return err
 	}
 
@@ -118,14 +121,22 @@ func processSegment(segment []byte) ([]byte, error) {
 	hasModules := false
 	oldModules := make(map[string]bool)
 
+	hasInit := false
+
 	for _, name := range inputArchive.Order {
 		rec := inputArchive.Files[name]
 
 		// Check if the archive contains modules
-		if strings.HasPrefix(name, "lib/modules/") && strings.HasSuffix(name, ".ko") {
+		if ramdiskModules != "" && strings.HasPrefix(name, "lib/modules/") && strings.HasSuffix(name, ".ko") {
 			hasModules = true
 			oldModules[strings.TrimPrefix(name, "lib/modules/")] = true
 			continue
+		}
+
+		// Rename init binary
+		if ramdiskInit != "" && name == "init" {
+			hasInit = true
+			rec.Name = "original-init"
 		}
 
 		// Find the last used ino
@@ -134,8 +145,7 @@ func processSegment(segment []byte) ([]byte, error) {
 		}
 
 		// Pass through file
-		err = outputArchive.WriteRecord(rec)
-		if err != nil {
+		if err := outputArchive.WriteRecord(rec); err != nil {
 			return nil, err
 		}
 	}
@@ -149,14 +159,15 @@ func processSegment(segment []byte) ([]byte, error) {
 			// Fine to read into memory as modules are small
 			newFile, err := os.Open(path.Join(ramdiskModules, name))
 			if err != nil {
-				log.Fatal(err)
+				return nil, err
 			}
 
 			data, err := io.ReadAll(newFile)
-
-			newFile.Close()
-
 			if err != nil {
+				return nil, err
+			}
+
+			if err := newFile.Close(); err != nil {
 				return nil, err
 			}
 
@@ -191,14 +202,61 @@ func processSegment(segment []byte) ([]byte, error) {
 		}
 	}
 
+	if hasInit {
+		log.Println(" - Replacing init")
+
+		// Read Replacement
+		newFile, err := os.Open(ramdiskInit)
+		if err != nil {
+			return nil, err
+		}
+
+		data, err := io.ReadAll(newFile)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := newFile.Close(); err != nil {
+			return nil, err
+		}
+
+		// Allocate new ino
+		lastIno += 1
+
+		// Write new module
+		err = outputArchive.WriteRecord(cpio.Record{
+			ReaderAt: bytes.NewReader(data),
+
+			Info: cpio.Info{
+				Ino:      lastIno,
+				Mode:     33256,
+				UID:      0,
+				GID:      0,
+				NLink:    1,
+				MTime:    0,
+				FileSize: uint64(len(data)),
+				Dev:      0,
+				Major:    0,
+				Minor:    0,
+				Rmajor:   0,
+				Rminor:   0,
+				Name:     "init",
+			},
+			RecPos:  0,
+			RecLen:  0,
+			FilePos: 0,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// Complete archive
-	err = cpio.WriteTrailer(outputArchive)
-	if err != nil {
+	if err := cpio.WriteTrailer(outputArchive); err != nil {
 		return nil, err
 	}
 
-	err = outputWriter.Flush()
-	if err != nil {
+	if err := outputWriter.Flush(); err != nil {
 		return nil, err
 	}
 
