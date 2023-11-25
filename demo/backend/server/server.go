@@ -2,17 +2,16 @@ package server
 
 import (
 	"context"
-	"github.com/csnewman/droidmole/agent/client/display"
-	"github.com/csnewman/droidmole/agent/client/state"
-	"github.com/csnewman/droidmole/agent/client/syslog"
+
 	"github.com/csnewman/droidmole/demo/backend/client"
 
 	agent "github.com/csnewman/droidmole/agent/client"
 
-	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
 	"sync"
+
+	"github.com/gorilla/websocket"
 )
 
 var upgrader = websocket.Upgrader{
@@ -25,8 +24,8 @@ type Server struct {
 	mu            sync.Mutex
 	clients       []*client.Client
 	ac            *agent.Client
-	syslogStream  *syslog.Stream
-	displayStream *display.Stream
+	syslogStream  *agent.SysLogStream
+	displayStream *agent.DisplayStream
 }
 
 func New() *Server {
@@ -36,7 +35,8 @@ func New() *Server {
 func (s *Server) Start() {
 	log.Println("Starting")
 
-	ac, err := agent.Connect("172.17.0.2:8080")
+	ac, err := agent.Connect("127.0.0.1:8080")
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -45,13 +45,8 @@ func (s *Server) Start() {
 
 	ctx := context.Background()
 
-	ss, err := ac.StreamState(context.Background())
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	s.displayStream, err = ac.StreamDisplay(ctx, display.Request{
-		Format:           display.VP8,
+	s.displayStream, err = ac.StreamDisplay(ctx, agent.DisplayRequest{
+		Format:           agent.VP8,
 		MaxFPS:           20,
 		KeyframeInterval: 3000,
 	})
@@ -67,25 +62,6 @@ func (s *Server) Start() {
 	}
 
 	go s.processSysLog()
-
-	initialState, err := ss.Recv()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if initialState.EmulatorState == state.EmulatorOff {
-		log.Println("Booting emulator")
-		err = ac.StartEmulator(ctx, agent.StartEmulatorRequest{
-			RamSize:    4096,
-			CoreCount:  6,
-			LcdDensity: 320,
-			LcdHeight:  1280,
-			LcdWidth:   720,
-		})
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
 
 	s.ac = ac
 

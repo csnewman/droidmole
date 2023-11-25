@@ -260,4 +260,12 @@ export class Connection {
             this.ws.send(JSON.stringify(msg));
         });
     }
+
+    sendPowerEvent(evt) {
+        const msg = {
+            type: 'power-event',
+            powerEvent: evt,
+        };
+        this.ws.send(JSON.stringify(msg));
+    }
 }

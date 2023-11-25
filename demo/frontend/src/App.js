@@ -36,6 +36,21 @@ function App() {
         state.openShell();
     }
 
+    function handleStart(e) {
+        e.preventDefault();
+        state.sendPowerEvent("start");
+    }
+
+    function handleStop(e) {
+        e.preventDefault();
+        state.sendPowerEvent("stop");
+    }
+
+    function handleForceStop(e) {
+        e.preventDefault();
+        state.sendPowerEvent("force-stop");
+    }
+
     return (
         <div className="App">
             <header className="App-header">
@@ -44,6 +59,16 @@ function App() {
                     id="uncontrolled-tab-example"
                 >
                     <Tab eventKey="display" title="Display">
+                        <button onClick={handleStart}>
+                            Start
+                        </button>
+                        <button onClick={handleStop}>
+                            Stop
+                        </button>
+                        <button onClick={handleForceStop}>
+                            Force Stop
+                        </button>
+                        <br/>
                         <canvas ref={canvasRef} className="ScreenCanvas" touch-action="none"></canvas>
                     </Tab>
                     <Tab eventKey="log" title="Log">

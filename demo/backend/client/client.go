@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	agent "github.com/csnewman/droidmole/agent/client"
-	"github.com/csnewman/droidmole/agent/client/display"
-	"github.com/csnewman/droidmole/agent/client/input"
-	"github.com/csnewman/droidmole/agent/client/shell"
-	"github.com/gorilla/websocket"
 	"log"
 	"sync"
+
+	agent "github.com/csnewman/droidmole/agent/client"
+	"github.com/csnewman/droidmole/agent/client/shell"
+	"github.com/gorilla/websocket"
 )
 
 type Client struct {
@@ -51,6 +50,7 @@ type ClientInMsg struct {
 	Type       string      `json:"type"`
 	Line       *string     `json:"line"`
 	TouchEvent *TouchEvent `json:"touchEvent"`
+	PowerEvent *string     `json:"powerEvent"`
 }
 
 func (c *Client) processMessages() {
@@ -92,7 +92,7 @@ func (c *Client) processMessages() {
 		case "touch-event":
 			evt := msg.TouchEvent
 			ctx := context.Background()
-			err = c.ac.SendInput(ctx, input.TouchEvent{
+			err = c.ac.SendInput(ctx, agent.TouchEvent{
 				Identifier: evt.Id,
 				X:          evt.X,
 				Y:          evt.Y,
@@ -105,12 +105,50 @@ func (c *Client) processMessages() {
 				log.Println("message ", err)
 				return
 			}
-		}
 
+		case "power-event":
+
+			switch *msg.PowerEvent {
+			case "start":
+				ctx := context.Background()
+				err := c.ac.StartEmulator(ctx, agent.StartEmulatorRequest{
+					RamSize:    3500,
+					CoreCount:  4,
+					LcdDensity: 320,
+					LcdHeight:  1280,
+					LcdWidth:   720,
+
+					//LcdHeight: 1280 / 2,
+					//LcdWidth:  720 / 2,
+					RootADB: true,
+				})
+				if err != nil {
+					log.Println("message ", err)
+					return
+				}
+			case "stop":
+				ctx := context.Background()
+				err := c.ac.StopEmulator(ctx, false)
+				if err != nil {
+					log.Println("message ", err)
+					return
+				}
+			case "force-stop":
+				ctx := context.Background()
+				err := c.ac.StopEmulator(ctx, true)
+				if err != nil {
+					log.Println("message ", err)
+					return
+				}
+			}
+		}
 	}
 }
 
-func (c *Client) ProcessFrame(frame *display.Frame) error {
+func (c *Client) ProcessFrame(frame *agent.Frame) error {
+	c.sendMutex.Lock()
+	defer c.sendMutex.Unlock()
+
 	if frame.Keyframe {
 		c.videoStarted = true
 		var buf bytes.Buffer
