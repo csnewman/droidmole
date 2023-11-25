@@ -2,13 +2,14 @@ package shell
 
 import (
 	"fmt"
+	"io"
+	"log"
+	"sync/atomic"
+
 	"github.com/csnewman/droidmole/agent/protocol"
 	"github.com/csnewman/droidmole/agent/server/adb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"io"
-	"log"
-	"sync/atomic"
 )
 
 func Process(adb adb.Adb, server protocol.AgentController_OpenShellServer) error {

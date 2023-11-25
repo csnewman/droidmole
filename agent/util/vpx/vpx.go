@@ -1,6 +1,5 @@
 package vpx
 
-import "C"
 import (
 	"errors"
 	"log"
