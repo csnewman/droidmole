@@ -17,14 +17,14 @@ var sysimgCmd = &cobra.Command{
 }
 
 var sysimgType string
-var sysimgApi int
+var sysimgApi string
 var sysimgAbi string
 var sysimgChannel string
 var sysimgOutput string
 
 func init() {
 	sysimgCmd.Flags().StringVar(&sysimgType, "type", "", "Type (default, google, playstore)")
-	sysimgCmd.Flags().IntVar(&sysimgApi, "api", -1, "API Level (e.g. 33)")
+	sysimgCmd.Flags().StringVar(&sysimgApi, "api", "", "API Level (e.g. 33)")
 	sysimgCmd.Flags().StringVar(&sysimgAbi, "abi", "x86_64", "ABI (e.g. x86_64)")
 	sysimgCmd.Flags().StringVar(&sysimgChannel, "channel", "channel-0", "Release Channel (e.g. channel-0)")
 	sysimgCmd.Flags().StringVar(&sysimgOutput, "output", "", "Destination File")

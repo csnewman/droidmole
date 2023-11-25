@@ -18,7 +18,7 @@ type Revision struct {
 }
 
 type TypeDetails struct {
-	ApiLevel int        `xml:"api-level"`
+	ApiLevel string     `xml:"api-level"`
 	Tag      TypeDetail `xml:"tag"`
 	Vendor   TypeDetail `xml:"vendor"`
 	Abi      string     `xml:"abi"`
@@ -39,7 +39,7 @@ type Archives struct {
 
 type Archive struct {
 	HostOs   string          `xml:"host-os"`
-	HostBits int             `xml:"host-bits"`
+	HostArch string          `xml:"host-arch"`
 	Complete ArchiveComplete `xml:"complete"`
 }
 
